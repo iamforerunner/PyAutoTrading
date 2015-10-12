@@ -103,10 +103,10 @@ def getStockData(items_info):
         df = ts.get_realtime_quotes(stock_codes)
         for i in range(len(df)):
             code_name_price.append((df['code'][i], df['name'][i], float(df['price'][i])))
+        return code_name_price
     except:
         return []
-    # print(code_name_price)
-    return code_name_price
+
 
 
 def monitor():
@@ -277,10 +277,6 @@ class StockGui:
             for col in range(self.cols):
                 if col == 0:
                     self.variable[row][col].set(set_stock_info[row][0])
-                elif col == 1:
-                    self.variable[row][col].set(actual_stock_info[row][1])
-                elif col == 2:
-                    self.variable[row][col].set(actual_stock_info[row][2])
                 elif col == 3:
                     self.variable[row][col].set(set_stock_info[row][1])
                 elif col == 4:

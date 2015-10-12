@@ -5,6 +5,7 @@
 只能用于华泰证券独立交易软件(同花顺通用版暂时不支持）。先启动交易软件，然后再运行本程序。第一次使用，需在`系统->快速交易` 选型卡下，把 `委托前是否需要确认`和`委托成功后是否弹出对话框`全选为否，在`交易设置`标签页下， 把`默认买入价格`和`默认卖出价格`设置为`卖五价`和`买五价`，另外按`F6`键,把买卖价格锁定为涨停价和跌停价，尽量以市价成交，目前软件还无法知道是否真的成交，只能知道委托是否成功。如果有疑问，或是建议，可以发邮件联系。邮箱：ronghui.ding@outlook.com
 
 ## 注意事项：
+* 交易软件下载地址http://www.htsc.com.cn/browser/download.html，选第一个`网上交易系统（专业版Ⅱ）V5.48`,交易程序单独运行，不要嵌在行情软件里 。
 * 开发环境是win10 64bit, python3 64bit、pywin32、tushare。 以前是用python 32bit开发的，现在好像python 64bit的也能用。
 * winguiauto.py这个文件需一同下载，和PyAutoTrading.py放同一目录。
 * 不写时间条件单，默认时间为凌晨1点。如果只想要时间条件单而忽略价格条件单，可以写个始终满足条件的价格。其它地方不写，这行将不做处理。
@@ -23,7 +24,7 @@
 
 
 -----------------------------------
-![](https://github.com/drongh/ImageCache/raw/master/Logo/setting1.gif)
-![](https://github.com/drongh/ImageCache/raw/master/Logo/setting2.gif)
-![](https://github.com/drongh/ImageCache/raw/master/Logo/setting3.gif)
-![](https://github.com/drongh/ImageCache/raw/master/Logo/trading.gif)
+![image](https://github.com/drongh/ImageCache/raw/master/Logo/setting1.gif)
+![image](https://github.com/drongh/ImageCache/raw/master/Logo/setting2.gif)
+![image](https://github.com/drongh/ImageCache/raw/master/Logo/setting3.gif)
+![image](https://github.com/drongh/ImageCache/raw/master/Logo/trading.gif)
