@@ -13,6 +13,8 @@ import tushare as ts
 from winguiauto import *
 import pickle
 
+
+
 is_start = False
 is_monitor = True
 set_stock_info = []
@@ -99,14 +101,21 @@ def getStockData(items_info):
     stock_codes = []
     for item in items_info:
         stock_codes.append(item[0])
+    # print('stock_codes', stock_codes)
     try:
         df = ts.get_realtime_quotes(stock_codes)
-        for i in range(len(df)):
-            code_name_price.append((df['code'][i], df['name'][i], float(df['price'][i])))
-        return code_name_price
+        for stock_code in stock_codes:
+            is_found = False
+            for i in range(len(df)):
+                if stock_code == df['code'][i]:
+                    code_name_price.append((df['code'][i], df['name'][i], float(df['price'][i])))
+                    is_found = True
+                    break
+            if is_found is False:
+                code_name_price.append(('', '', 0))
     except:
-        return []
-
+        code_name_price = [('', '', 0)]
+    return code_name_price
 
 
 def monitor():
@@ -119,41 +128,40 @@ def monitor():
         time.sleep(3)
         if is_start:
             actual_stock_info = getStockData(set_stock_info)
-            for actual_code, actual_name, actual_price in actual_stock_info:
-                for row, (set_code, set_relation, set_price, set_direction, set_quantity, set_time) in enumerate(
-                        set_stock_info):
-                    if actual_code == set_code and actual_code and set_code \
-                            and is_activated[row] == 1 and set_relation \
-                            and set_direction and set_quantity and set_price > 0 \
-                            and datetime.datetime.now().time() > set_time:
-                        if set_relation == '>' and actual_price > set_price:
-                            dt = datetime.datetime.now()
-                            if order(hwnd, set_code, set_quantity, set_direction):
-                                order_msg.append(
-                                    (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                     actual_name, set_direction,
-                                     actual_price, set_quantity, '成功'))
-                                is_activated[row] = 0
-                            else:
-                                order_msg.append(
-                                    (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                     actual_name, set_direction,
-                                     actual_price, set_quantity, '失败'))
-                                is_activated[row] = -1
-                        if set_relation == '<' and actual_price < set_price:
-                            dt = datetime.datetime.now()
-                            if order(hwnd, set_code, set_quantity, set_direction):
-                                order_msg.append(
-                                    (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                     actual_name, set_direction,
-                                     actual_price, set_quantity, '成功'))
-                                is_activated[row] = 0
-                            else:
-                                order_msg.append(
-                                    (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                     actual_name, set_direction,
-                                     actual_price, set_quantity, '失败'))
-                                is_activated[row] = -1
+            # print('actual_stock_info', actual_stock_info)
+            for row, (actual_code, actual_name, actual_price) in enumerate(actual_stock_info):
+                if actual_code and is_activated[row] == 1 \
+                        and set_stock_info[row][1] and set_stock_info[row][2] > 0 \
+                        and set_stock_info[row][3] and set_stock_info[row][4] \
+                        and datetime.datetime.now().time() > set_stock_info[row][5]:
+                    if set_stock_info[row][1] == '>' and actual_price > set_stock_info[row][2]:
+                        dt = datetime.datetime.now()
+                        if order(hwnd, actual_code, set_stock_info[row][4], set_stock_info[row][3]):
+                            order_msg.append(
+                                (dt.strftime('%x'), dt.strftime('%X'), actual_code,
+                                 actual_name, set_stock_info[row][3],
+                                 actual_price, set_stock_info[row][4], '成功'))
+                            is_activated[row] = 0
+                        else:
+                            order_msg.append(
+                                (dt.strftime('%x'), dt.strftime('%X'), actual_code,
+                                 actual_name, set_stock_info[row][3],
+                                 actual_price, set_stock_info[row][4], '失败'))
+                            is_activated[row] = -1
+                    if set_stock_info[row][1] == '<' and actual_price < set_stock_info[row][2]:
+                        dt = datetime.datetime.now()
+                        if order(hwnd, actual_code, set_stock_info[row][4], set_stock_info[row][3]):
+                            order_msg.append(
+                                (dt.strftime('%x'), dt.strftime('%X'), actual_code,
+                                 actual_name, set_stock_info[row][3],
+                                 actual_price, set_stock_info[row][4], '成功'))
+                            is_activated[row] = 0
+                        else:
+                            order_msg.append(
+                                (dt.strftime('%x'), dt.strftime('%X'), actual_code,
+                                 actual_name, set_stock_info[row][3],
+                                 actual_price, set_stock_info[row][4], '失败'))
+                            is_activated[row] = -1
 
 
 class StockGui:
@@ -289,7 +297,10 @@ class StockGui:
                     self.variable[row][col].set(set_stock_info[row][5].strftime('%X'))
 
     def setFlags(self):
-        # 重置买卖标志
+        '''
+        重置买卖标志
+        :return:
+        '''
         global is_start, is_activated
         if is_start is False:
             is_activated = [1] * 5
@@ -301,18 +312,16 @@ class StockGui:
         '''
         global set_stock_info, actual_stock_info, is_start
         if is_start:
-
-            for row, (set_code, _, _, _, _, _) in enumerate(set_stock_info):
-                for actual_code, actual_name, actual_price in actual_stock_info:
-                    if actual_code == set_code and actual_code and set_code:
-                        self.variable[row][1].set(actual_name)
-                        self.variable[row][2].set(str(actual_price))
-                        if is_activated[row] == 1:
-                            self.variable[row][8].set('监控')
-                        elif is_activated[row] == -1:
-                            self.variable[row][8].set('失败')
-                        elif is_activated[row] == 0:
-                            self.variable[row][8].set('成功')
+            for row, (actual_code, actual_name, actual_price) in enumerate(actual_stock_info):
+                if actual_code:
+                    self.variable[row][1].set(actual_name)
+                    self.variable[row][2].set(str(actual_price))
+                    if is_activated[row] == 1:
+                        self.variable[row][8].set('监控')
+                    elif is_activated[row] == -1:
+                        self.variable[row][8].set('失败')
+                    elif is_activated[row] == 0:
+                        self.variable[row][8].set('成功')
 
         self.window.after(3000, self.updateControls)
 
