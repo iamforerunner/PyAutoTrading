@@ -13,7 +13,6 @@ Until I get around to writing some docs and examples, the tests at the foot of
 this module should serve to get you started.
 '''
 import time
-import os
 import struct
 import win32api
 import win32gui
@@ -126,14 +125,33 @@ def dumpSpecifiedWindow(hwnd, wantedText=None, wantedClass=None):
     :return: 返回父窗口下所有子窗体的句柄
     '''
     windows = []
-    hwndChild = win32gui.FindWindowEx(hwnd, None, wantedClass, wantedText)
-    windows.append(hwndChild)
+    hwndChild = None
     while True:
         hwndChild = win32gui.FindWindowEx(hwnd, hwndChild, wantedClass, wantedText)
         if hwndChild:
-            windows.append(hwndChild)
+            textName = win32gui.GetWindowText(hwndChild)
+            className = win32gui.GetClassName(hwndChild)
+            windows.append((hwndChild, textName, className))
         else:
             return windows
+
+def findSpecifiedWindow(hwnd, numChildWindows=70):
+    '''
+    查找一个窗口，它有指定数量的子窗口
+    :param hwnd:
+    :return:
+    '''
+    windows = []
+    try:
+        win32gui.EnumChildWindows(hwnd, _windowEnumerationHandler, windows)
+    except win32gui.error:
+        # No child windows
+        return
+    for index, window in enumerate(windows):
+        childHwnd, windowText, windowClass = window
+        windowContent = dumpSpecifiedWindow(childHwnd)
+        if len(windowContent) == numChildWindows:
+            return childHwnd
 
 
 def dumpWindow(hwnd):
@@ -170,6 +188,7 @@ def dumpWindow(hwnd):
         if window_content:
             window.append(window_content)
     return windows
+
 
 
 def findControl(topHwnd,
@@ -352,7 +371,6 @@ def pressKey(hwnd, key_code):
     time.sleep(.2)
 
 
-
 def clickStatic(hwnd):
     '''Simulates a single mouse click on a static
 
@@ -397,6 +415,7 @@ def setEditText(hwnd, text):
     '''
     win32gui.SendMessage(hwnd, win32con.WM_SETTEXT, None, text)
 
+
 # def setEditText(hwnd, text, append=False):
 #     '''Set an edit control's text.
 #
@@ -433,30 +452,30 @@ def setEditText(hwnd, text):
 #         time.sleep(.5)
 #     '''
 
-    # Ensure that text is a list
-    # try:
-    #     text + ''
-    #     text = [text]
-    # except TypeError:
-    #     pass
-    #
-    # # Set the current selection range, depending on append flag
-    # if append:
-    #     win32gui.SendMessage(hwnd,
-    #                          win32con.EM_SETSEL,
-    #                          -1,
-    #                          0)
-    # else:
-    #     win32gui.SendMessage(hwnd,
-    #                          win32con.EM_SETSEL,
-    #                          0,
-    #                          -1)
-    #
-    # # Send the text
-    # win32gui.SendMessage(hwnd,
-    #                      win32con.EM_REPLACESEL,
-    #                      True,
-    #                      os.linesep.join(text))
+# Ensure that text is a list
+# try:
+#     text + ''
+#     text = [text]
+# except TypeError:
+#     pass
+#
+# # Set the current selection range, depending on append flag
+# if append:
+#     win32gui.SendMessage(hwnd,
+#                          win32con.EM_SETSEL,
+#                          -1,
+#                          0)
+# else:
+#     win32gui.SendMessage(hwnd,
+#                          win32con.EM_SETSEL,
+#                          0,
+#                          -1)
+#
+# # Send the text
+# win32gui.SendMessage(hwnd,
+#                      win32con.EM_REPLACESEL,
+#                      True,
+#                      os.linesep.join(text))
 
 
 def _windowEnumerationHandler(hwnd, resultList):

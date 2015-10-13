@@ -23,59 +23,69 @@ actual_stock_info = []
 is_activated = [1] * 5  # 1：准备  0：交易成功 -1：交易失败
 
 
-def findWantedControls(hwnd):
-    # 获取双向委托界面level3窗体下所有控件句柄
-    hwndChildLevel1 = dumpSpecifiedWindow(hwnd, wantedClass='AfxMDIFrame42s')
-    hwndChildLevel2 = dumpSpecifiedWindow(hwndChildLevel1[0])
-    for handler in hwndChildLevel2:
-        hwndChildLevel3 = dumpSpecifiedWindow(handler)
-        if len(hwndChildLevel3) == 70:  # 在hwndChildLevel3下，共有70个子窗体
-            return hwndChildLevel3
+def refreshWindow(hwnd):
+    '''
+    点击刷新按钮，防止待机
+    :param hwnd: 主窗口句柄
+    :return:
+    '''
+    pressKey(hwnd, win32con.VK_F6)
+    hwnd_controls = wantControls(dumpSpecifiedWindow(findSpecifiedWindow(hwnd, 73)))
+    clickButton(hwnd_controls[12][0])
+    time.sleep(3)
+
+
+def wantControls(lst):
+    wanted_controls = []
+    for Hwnd, text_name, class_name in lst:
+        if class_name in ('Button', 'Edit'):
+            wanted_controls.append((Hwnd, text_name, class_name))
+    return wanted_controls
 
 
 def closePopupWindow(hwnd, wantedText=None, wantedClass=None):
     # 如果有弹出式窗口，点击它的确定按钮
-    hwndPopup = findPopupWindow(hwnd)
-    if hwndPopup:
-        hwndControl = findControl(hwndPopup, wantedText, wantedClass)
-        clickButton(hwndControl)
-        time.sleep(1)
+    hwnd_popup = findPopupWindow(hwnd)
+    if hwnd_popup:
+        hwnd_control = findControl(hwnd_popup, wantedText, wantedClass)
+        clickButton(hwnd_control)
         return True
     return False
 
 
 def buy(hwnd, stock_code, stock_number):
     pressKey(hwnd, win32con.VK_F6)
-    hwndControls = findWantedControls(hwnd)
+    hwnd_controls = wantControls(dumpSpecifiedWindow(findSpecifiedWindow(hwnd, 73)))
+    print(hwnd_controls)
     if closePopupWindow(hwnd, wantedClass='Button'):
         time.sleep(5)
-    click(hwndControls[2])
+    click(hwnd_controls[0][0])
     time.sleep(.5)
-    setEditText(hwndControls[2], stock_code)
+    setEditText(hwnd_controls[0][0], stock_code)
     time.sleep(.5)
-    click(hwndControls[7])
+    click(hwnd_controls[2][0])
     time.sleep(.5)
-    setEditText(hwndControls[7], stock_number)
+    setEditText(hwnd_controls[2][0], stock_number)
     time.sleep(.5)
-    clickButton(hwndControls[8])
+    clickButton(hwnd_controls[3][0])
     time.sleep(1)
     return not closePopupWindow(hwnd, wantedClass='Button')
 
 
 def sell(hwnd, stock_code, stock_number):
     pressKey(hwnd, win32con.VK_F6)
-    hwndControls = findWantedControls(hwnd)
+    hwnd_controls = wantControls(dumpSpecifiedWindow(findSpecifiedWindow(hwnd, 73)))
     if closePopupWindow(hwnd, wantedClass='Button'):
         time.sleep(5)
-    click(hwndControls[11])
+    click(hwnd_controls[4][0])
     time.sleep(.5)
-    setEditText(hwndControls[11], stock_code)
+    setEditText(hwnd_controls[4][0], stock_code)
     time.sleep(.5)
-    click(hwndControls[16])
+    click(hwnd_controls[6][0])
     time.sleep(.5)
-    setEditText(hwndControls[16], stock_number)
+    setEditText(hwnd_controls[6][0], stock_number)
     time.sleep(.5)
-    clickButton(hwndControls[17])
+    clickButton(hwnd_controls[7][0])
     time.sleep(1)
     return not closePopupWindow(hwnd, wantedClass='Button')
 
@@ -92,7 +102,6 @@ def tradingInit():
     hwnd_parent = findSpecifiedTopWindow(wantedText='网上股票交易系统5.0')
     if hwnd_parent == 0:
         tkinter.messagebox.showerror('错误', '请先打开华泰证券交易软件，再运行本软件')
-        return
     return hwnd_parent
 
 
@@ -101,7 +110,6 @@ def getStockData(items_info):
     stock_codes = []
     for item in items_info:
         stock_codes.append(item[0])
-    # print('stock_codes', stock_codes)
     try:
         df = ts.get_realtime_quotes(stock_codes)
         for stock_code in stock_codes:
@@ -121,20 +129,22 @@ def getStockData(items_info):
 def monitor():
     # 股价监控函数
     global actual_stock_info, order_msg, is_activated, set_stock_info
-
+    count = 0
     hwnd = tradingInit()
     # 如果hwnd为零，直接终止循环
     while is_monitor and hwnd:
+        if count % 100 == 0:
+            refreshWindow(hwnd)   # 刷新窗体，防止交易待机
         time.sleep(3)
+        count += 1
         if is_start:
             actual_stock_info = getStockData(set_stock_info)
-            # print('actual_stock_info', actual_stock_info)
             for row, (actual_code, actual_name, actual_price) in enumerate(actual_stock_info):
-                if actual_code and is_activated[row] == 1 \
+                if is_start and actual_code and is_activated[row] == 1 \
                         and set_stock_info[row][1] and set_stock_info[row][2] > 0 \
                         and set_stock_info[row][3] and set_stock_info[row][4] \
                         and datetime.datetime.now().time() > set_stock_info[row][5]:
-                    if set_stock_info[row][1] == '>' and actual_price > set_stock_info[row][2]:
+                    if is_start and set_stock_info[row][1] == '>' and actual_price > set_stock_info[row][2]:
                         dt = datetime.datetime.now()
                         if order(hwnd, actual_code, set_stock_info[row][4], set_stock_info[row][3]):
                             order_msg.append(
@@ -148,7 +158,7 @@ def monitor():
                                  actual_name, set_stock_info[row][3],
                                  actual_price, set_stock_info[row][4], '失败'))
                             is_activated[row] = -1
-                    if set_stock_info[row][1] == '<' and actual_price < set_stock_info[row][2]:
+                    if is_start and set_stock_info[row][1] == '<' and actual_price < set_stock_info[row][2]:
                         dt = datetime.datetime.now()
                         if order(hwnd, actual_code, set_stock_info[row][4], set_stock_info[row][3]):
                             order_msg.append(
@@ -294,7 +304,11 @@ class StockGui:
                 elif col == 6:
                     self.variable[row][col].set(set_stock_info[row][4])
                 elif col == 7:
-                    self.variable[row][col].set(set_stock_info[row][5].strftime('%X'))
+                    temp = set_stock_info[row][5].strftime('%X')
+                    if  temp == '01:00:00':
+                        self.variable[row][col].set('')
+                    else:
+                        self.variable[row][col].set(temp)
 
     def setFlags(self):
         '''
