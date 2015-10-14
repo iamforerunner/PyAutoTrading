@@ -25,7 +25,7 @@
 * v 0.09 增加配置文件pyautotrading.ini, 支持华泰专业版和同花顺通用版。可以通过修改配置文件来选择。加入自动刷新功能，每个5分钟刷新一次，防止软件进入待机状态。
 
 ## 其它
-本程序开发告一段落。后期的交易接口打算采用通用接口，打算用AutoHotKey，好处是可以支持所有的类型的交易，比如期货股票等。交易动作自己可以写脚本。
+* 本程序开发告一段落。后期的交易接口打算采用通用接口，打算用AutoHotKey，好处是可以支持所有的类型的交易，比如期货股票等。交易动作自己可以写脚本。
 -----------------------------------
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting1.gif)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting2.gif)
