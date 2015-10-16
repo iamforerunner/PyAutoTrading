@@ -1,4 +1,5 @@
 # -*- encoding: utf8 -*-
+# QQ群： 486224275
 __author__ = '人在江湖'
 __email__ = 'ronghui.ding@outlook.com'
 
@@ -21,7 +22,7 @@ is_monitor = True
 set_stock_info = []
 order_msg = []
 actual_stock_info = []
-is_activated = [1] * 5  # 1：准备  0：交易成功 -1：交易失败
+is_ordered = [1] * 5  # 1：准备  0：交易成功 -1：交易失败
 
 
 def getConfigData():
@@ -30,7 +31,7 @@ def getConfigData():
     return cf.getint('tradeVersion', 'numChildWindows')
 
 
-def refreshWindow(hwnd_controls):
+def clickRefreshButton(hwnd_controls):
     '''
     点击刷新按钮，防止待机
     :param hwnd: 主窗口句柄
@@ -40,7 +41,7 @@ def refreshWindow(hwnd_controls):
     time.sleep(3)
 
 
-def getHwndControls(hwnd, num_child_windows):
+def pickHwndControls(hwnd, num_child_windows):
     cleaned_hwnd_controls = []
     hwnd_controls = dumpSpecifiedWindow(findSpecifiedWindow(hwnd, num_child_windows))
     for Hwnd, text_name, class_name in hwnd_controls:
@@ -55,13 +56,12 @@ def closePopupWindow(hwnd, wantedText=None, wantedClass=None):
     if hwnd_popup:
         hwnd_control = findControl(hwnd_popup, wantedText, wantedClass)
         clickButton(hwnd_control)
+        time.sleep(1)
         return True
     return False
 
 
-def buy(hwnd, hwnd_controls, stock_code, stock_number):
-    if closePopupWindow(hwnd, wantedClass='Button'):
-        time.sleep(5)
+def buy(hwnd_controls, stock_code, stock_number):
     click(hwnd_controls[0][0])
     time.sleep(.5)
     setEditText(hwnd_controls[0][0], stock_code)
@@ -72,12 +72,9 @@ def buy(hwnd, hwnd_controls, stock_code, stock_number):
     time.sleep(.5)
     clickButton(hwnd_controls[3][0])
     time.sleep(1)
-    return not closePopupWindow(hwnd, wantedClass='Button')
 
 
-def sell(hwnd, hwnd_controls, stock_code, stock_number):
-    if closePopupWindow(hwnd, wantedClass='Button'):
-        time.sleep(5)
+def sell(hwnd_controls, stock_code, stock_number):
     click(hwnd_controls[4][0])
     time.sleep(.5)
     setEditText(hwnd_controls[4][0], stock_code)
@@ -88,29 +85,38 @@ def sell(hwnd, hwnd_controls, stock_code, stock_number):
     time.sleep(.5)
     clickButton(hwnd_controls[7][0])
     time.sleep(1)
-    return not closePopupWindow(hwnd, wantedClass='Button')
 
 
 def order(hwnd, hwnd_controls, stock_code, stock_number, trade_direction):
+    # 检测交易软件是否挂起或出错
+    if closePopupWindow(hwnd, wantedClass='Button'):
+        time.sleep(5)
     if trade_direction == 'B':
-        return buy(hwnd, hwnd_controls, stock_code, stock_number)
+        buy(hwnd_controls, stock_code, stock_number)
+        return not closePopupWindow(hwnd, wantedClass='Button')
     if trade_direction == 'S':
-        return sell(hwnd, hwnd_controls, stock_code, stock_number)
+        sell(hwnd_controls, stock_code, stock_number)
+        return not closePopupWindow(hwnd, wantedClass='Button')
 
 
 def tradingInit():
-    # 获取交易软件句柄
+    # 获取交易软件及子控件句柄
     hwnd = findSpecifiedTopWindow(wantedText='网上股票交易系统5.0')
     if hwnd == 0:
         tkinter.messagebox.showerror('错误', '请先打开华泰证券交易软件，再运行本软件')
         return hwnd, []
     else:
         pressKey(hwnd, win32con.VK_F6)
-        hwnd_child_controls = getHwndControls(hwnd, getConfigData())
+        hwnd_child_controls = pickHwndControls(hwnd, getConfigData())
     return hwnd, hwnd_child_controls
 
 
 def getStockData(items_info):
+    '''
+    获取股票数据
+    :param items_info:
+    :return:
+    '''
     code_name_price = []
     stock_codes = []
     for item in items_info:
@@ -133,19 +139,19 @@ def getStockData(items_info):
 
 def monitor():
     # 股价监控函数
-    global actual_stock_info, order_msg, is_activated, set_stock_info
+    global actual_stock_info, order_msg, is_ordered, set_stock_info
     count = 0
     hwnd, hwnd_child_controls = tradingInit()
     # 如果hwnd为零，直接终止循环
     while is_monitor and hwnd:
         if count % 100 == 0:
-            refreshWindow(hwnd_child_controls)   # 刷新窗体，防止交易待机
+            clickRefreshButton(hwnd_child_controls)   # 刷新窗体，防止交易待机
         time.sleep(3)
         count += 1
         if is_start:
             actual_stock_info = getStockData(set_stock_info)
             for row, (actual_code, actual_name, actual_price) in enumerate(actual_stock_info):
-                if is_start and actual_code and is_activated[row] == 1 \
+                if is_start and actual_code and is_ordered[row] == 1 \
                         and set_stock_info[row][1] and set_stock_info[row][2] > 0 \
                         and set_stock_info[row][3] and set_stock_info[row][4] \
                         and datetime.datetime.now().time() > set_stock_info[row][5]:
@@ -156,13 +162,13 @@ def monitor():
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                                  actual_name, set_stock_info[row][3],
                                  actual_price, set_stock_info[row][4], '成功'))
-                            is_activated[row] = 0
+                            is_ordered[row] = 0
                         else:
                             order_msg.append(
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                                  actual_name, set_stock_info[row][3],
                                  actual_price, set_stock_info[row][4], '失败'))
-                            is_activated[row] = -1
+                            is_ordered[row] = -1
                     if is_start and set_stock_info[row][1] == '<' and actual_price < set_stock_info[row][2]:
                         dt = datetime.datetime.now()
                         if order(hwnd, hwnd_child_controls, actual_code, set_stock_info[row][4], set_stock_info[row][3]):
@@ -170,13 +176,13 @@ def monitor():
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                                  actual_name, set_stock_info[row][3],
                                  actual_price, set_stock_info[row][4], '成功'))
-                            is_activated[row] = 0
+                            is_ordered[row] = 0
                         else:
                             order_msg.append(
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                                  actual_name, set_stock_info[row][3],
                                  actual_price, set_stock_info[row][4], '失败'))
-                            is_activated[row] = -1
+                            is_ordered[row] = -1
 
 
 class StockGui:
@@ -320,9 +326,9 @@ class StockGui:
         重置买卖标志
         :return:
         '''
-        global is_start, is_activated
+        global is_start, is_ordered
         if is_start is False:
-            is_activated = [1] * 5
+            is_ordered = [1] * 5
 
     def updateControls(self):
         '''
@@ -335,11 +341,11 @@ class StockGui:
                 if actual_code:
                     self.variable[row][1].set(actual_name)
                     self.variable[row][2].set(str(actual_price))
-                    if is_activated[row] == 1:
+                    if is_ordered[row] == 1:
                         self.variable[row][8].set('监控')
-                    elif is_activated[row] == -1:
+                    elif is_ordered[row] == -1:
                         self.variable[row][8].set('失败')
-                    elif is_activated[row] == 0:
+                    elif is_ordered[row] == 0:
                         self.variable[row][8].set('成功')
 
         self.window.after(3000, self.updateControls)

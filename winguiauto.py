@@ -147,7 +147,7 @@ def findSpecifiedWindow(hwnd, numChildWindows=70):
     except win32gui.error:
         # No child windows
         return
-    for index, window in enumerate(windows):
+    for window in windows:
         childHwnd, windowText, windowClass = window
         windowContent = dumpSpecifiedWindow(childHwnd)
         if len(windowContent) == numChildWindows:
