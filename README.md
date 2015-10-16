@@ -2,11 +2,11 @@
 股票交易软件辅助工具
 
 ## 简介
-用于华泰证券独立交易软件和同花顺通用版（须有`双向委托[F6]`功能）, 通用版支持券商较多。先启动交易软件，然后再运行本程序。第一次使用，需在`系统->快速交易` 选型卡下，把 `委托前是否需要确认`和`委托成功后是否弹出对话框`全选为否，在`交易设置`标签页下， 把`默认买入价格`和`默认卖出价格`设置为`卖五价`和`买五价`，另外按`F6`键切换到双向委托界面下，,把买卖价格锁定为涨停价和跌停价，尽量以市价成交，目前软件还无法知道是否真的成交，只能知道委托是否成功。如果有疑问，或是建议，可以发邮件联系。邮箱：ronghui.ding@outlook.com，或加入QQ群：486224275。
+用于华泰证券独立交易软件和同花顺通用版（须有`双向委托[F6]`功能）。软件可以一次监控5只股票，根据条件下单。每次下单耗时小于1s，目前软件只能知道委托是否成功。如果有疑问，或是建议，可以发邮件联系。邮箱：ronghui.ding@outlook.com，或加入QQ群：486224275。
 
 ## 注意事项
 * 开发环境是win10 64bit, python3 64bit、pywin32、tushare。 以前是用python 32bit开发的，现在好像python 64bit的也能用。
-* winguiauto.py这个文件需一同下载，和PyAutoTrading.py放同一目录。
+* 软件共有4个文件，pyautotrading.ini配置文件，PyAutoTrading.pyw主程序，stockInfo.dat存盘文件，winguiauto.py是封装的winapi函数。
 * 交易软件启动后，按F6，进入双向委托界面，启动本程序后，不要再切换到其它界面。切换到其他界面后即使再切换回来，有些情况会导致不能正常获取句柄。
 * 程序启动有点慢，初始化工作比较多，python的多线程问题。
 * 不写时间条件单，默认时间为凌晨1点。如果只想要时间条件单而忽略价格条件单，可以写个始终满足条件的价格。其它地方不写，这行将不做处理。
@@ -23,10 +23,12 @@
 * v 0.07 时间条件单和价格条件单相结合，添加保存和载入功能,存档和主文件在同一目录下，名为stockInfo.dat，是个二进制文件。	
 * v 0.08 代码清理，添加了注释。现在可以同时监控5只股票。
 * v 0.09 增加配置文件pyautotrading.ini,		支持华泰专业版和同花顺通用版。可以通过修改配置文件来选择。加入自动刷新功能，每隔5分钟刷新一次，防止软件进入待机状态。
+* v0.10 修改了几个bug，买卖价格改由python计算，加快了下单速度（0.6s），稳定性增加了不少。需更改交易软件设置，请看图。
 
 
 -----------------------------------
-![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting1.gif)
-![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting2.gif)
-![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting3.gif)
-![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/trading.gif)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting1.png)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting2.png)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting3.png)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting4.png)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/trading.png)

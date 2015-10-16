@@ -135,7 +135,7 @@ def dumpSpecifiedWindow(hwnd, wantedText=None, wantedClass=None):
         else:
             return windows
 
-def findSpecifiedWindow(hwnd, numChildWindows=70):
+def findSpecifiedWindows(hwnd, numChildWindows=70):
     '''
     查找一个窗口，它有指定数量的子窗口
     :param hwnd:
@@ -151,8 +151,9 @@ def findSpecifiedWindow(hwnd, numChildWindows=70):
         childHwnd, windowText, windowClass = window
         windowContent = dumpSpecifiedWindow(childHwnd)
         if len(windowContent) == numChildWindows:
-            return childHwnd
-
+            return windowContent
+    # 没有指定数量的句柄
+    return
 
 def dumpWindow(hwnd):
     '''Dump all controls from a window into a nested list
@@ -358,7 +359,7 @@ def focusWindow(hwnd):
     win32gui.SetForegroundWindow(hwnd)
 
 
-def pressKey(hwnd, key_code):
+def sendKeyMsg(hwnd, key_code):
     '''
     模拟按键
     :param hwnd: 窗体句柄
