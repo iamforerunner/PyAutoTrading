@@ -55,7 +55,6 @@ def closePopupWindow(top_hwnd, wantedText=None, wantedClass=None):
 
 def buy(hwnd_lst, code, stop_price, quantity):
     setEditText(hwnd_lst[0][0], code)
-    time.sleep(0.2)
     setEditText(hwnd_lst[1][0], stop_price)
     time.sleep(0.2)
     setEditText(hwnd_lst[2][0], quantity)
@@ -66,7 +65,6 @@ def buy(hwnd_lst, code, stop_price, quantity):
 
 def sell(hwnd_lst, code, stop_price, quantity):
     setEditText(hwnd_lst[4][0], code)
-    time.sleep(0.2)
     setEditText(hwnd_lst[5][0], stop_price)
     time.sleep(0.2)
     setEditText(hwnd_lst[6][0], quantity)
@@ -295,6 +293,7 @@ class StockGui:
         :return:
         '''
         global set_stock_info, order_msg, actual_stock_info
+        self.getItems()
         with open('stockInfo.dat', 'wb') as fp:
             pickle.dump(set_stock_info, fp)
             pickle.dump(actual_stock_info, fp)
