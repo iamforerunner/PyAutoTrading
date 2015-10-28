@@ -135,15 +135,16 @@ def dumpSpecifiedWindow(hwnd, wantedText=None, wantedClass=None):
         else:
             return windows
 
-def findSpecifiedWindows(hwnd, numChildWindows=70):
+def findSpecifiedWindows(top_hwnd, numChildWindows=70):
     '''
-    查找一个窗口，它有指定数量的子窗口
-    :param hwnd:
-    :return:
+    查找某一窗口下指定数量的子窗口
+    :param top_hwnd: 主窗口句柄
+    :param numChildWindows: 子窗口数量
+    :return:子窗口列表，包括子窗口hwnd, title, className
     '''
     windows = []
     try:
-        win32gui.EnumChildWindows(hwnd, _windowEnumerationHandler, windows)
+        win32gui.EnumChildWindows(top_hwnd, _windowEnumerationHandler, windows)
     except win32gui.error:
         # No child windows
         return
@@ -190,6 +191,31 @@ def dumpWindow(hwnd):
             window.append(window_content)
     return windows
 
+
+def closePopupWindow(top_hwnd, wantedText=None, wantedClass=None):
+    '''
+    关闭一个弹窗。
+    :param top_hwnd: 主窗口句柄
+    :param wantedText: 弹出对话框上的按钮文本
+    :param wantedClass: 弹出对话框上的按钮类名
+    :return: 如果有弹出式对话框，返回True，否则返回False
+    '''
+    hwnd_popup = findPopupWindow(top_hwnd)
+    if hwnd_popup:
+        hwnd_control = findControl(hwnd_popup, wantedText, wantedClass)
+        clickButton(hwnd_control)
+        return True
+    return False
+
+
+def closePopupWindows(top_hwnd):
+    '''
+    连续点击多个弹出式对话框，直到没有弹窗
+    :param top_hwnd: 主窗口句柄
+    :return:
+    '''
+    while closePopupWindow(top_hwnd):
+        time.sleep(0.3)
 
 
 def findControl(topHwnd,
@@ -346,7 +372,6 @@ def click(hwnd):
     win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, None, None)
     time.sleep(.2)
     win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, None, None)
-    time.sleep(.2)
 
 
 def focusWindow(hwnd):
@@ -359,7 +384,7 @@ def focusWindow(hwnd):
     win32gui.SetForegroundWindow(hwnd)
 
 
-def sendKeyMsg(hwnd, key_code):
+def sendKey(hwnd, key_code):
     '''
     模拟按键
     :param hwnd: 窗体句柄
@@ -369,7 +394,6 @@ def sendKeyMsg(hwnd, key_code):
     win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, key_code, 0)  # 消息键盘
     time.sleep(.2)
     win32gui.PostMessage(hwnd, win32con.WM_KEYUP, key_code, 0)
-    time.sleep(.2)
 
 
 def clickStatic(hwnd):
@@ -406,6 +430,11 @@ def doubleClickStatic(hwnd):
 #
 #     text = buffer[:bufLen]
 #     return text
+
+
+def getWindowText(hwnd):
+    return win32gui.GetWindowText(hwnd)
+
 
 def setEditText(hwnd, text):
     '''

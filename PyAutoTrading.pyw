@@ -4,18 +4,19 @@ __author__ = '人在江湖'
 __email__ = 'ronghui.ding@outlook.com'
 
 import time
-import win32con
 import tkinter.messagebox
 from tkinter import *
 from tkinter.ttk import *
 import datetime
 import threading
-import tushare as ts
-from winguiauto import *
 import pickle
-import configparser
 
+import win32con
+import tushare as ts
 
+from winguiauto import (findSpecifiedWindows, findPopupWindow,
+                        findControl, clickButton, click, setEditText,
+                        findSpecifiedTopWindow, sendKey)
 
 is_start = False
 is_monitor = True
@@ -23,14 +24,6 @@ set_stock_info = []
 order_msg = []
 actual_stock_info = []
 is_ordered = [1] * 5  # 1：准备  0：交易成功 -1：交易失败
-
-
-def getConfigData():
-    cp = configparser.ConfigParser()
-    cp.read('pyautotrading.ini')
-    numChildWindows = cp.getint('tradeVersion', 'numChildWindows')
-    # print(numChildWindows)
-    return numChildWindows
 
 
 def pickHwndOfControls(top_hwnd, num_child_windows):
@@ -54,6 +47,7 @@ def closePopupWindow(top_hwnd, wantedText=None, wantedClass=None):
 
 
 def buy(hwnd_lst, code, stop_price, quantity):
+    click(hwnd_lst[0][0])
     setEditText(hwnd_lst[0][0], code)
     setEditText(hwnd_lst[1][0], stop_price)
     time.sleep(0.2)
@@ -64,6 +58,7 @@ def buy(hwnd_lst, code, stop_price, quantity):
 
 
 def sell(hwnd_lst, code, stop_price, quantity):
+    click(hwnd_lst[4][0])
     setEditText(hwnd_lst[4][0], code)
     setEditText(hwnd_lst[5][0], stop_price)
     time.sleep(0.2)
@@ -92,8 +87,8 @@ def tradingInit():
         tkinter.messagebox.showerror('错误', '请先打开华泰证券交易软件，再运行本软件')
         return hwnd, []
     else:
-        sendKeyMsg(hwnd, win32con.VK_F6)
-        hwnd_child_controls = pickHwndOfControls(hwnd, getConfigData())
+        sendKey(hwnd, win32con.VK_F6)
+        hwnd_child_controls = pickHwndOfControls(hwnd, 70)
     return hwnd, hwnd_child_controls
 
 
@@ -142,18 +137,17 @@ def getStockData(items_info):
 def monitor():
     # 股价监控函数
     global actual_stock_info, order_msg, is_ordered, set_stock_info
-    count = 0
+    count = 1
     hwnd, hwnd_child_controls = tradingInit()
     # 如果hwnd为零，直接终止循环
     while is_monitor and hwnd:
         if count % 100 == 0:
-            clickButton(hwnd_child_controls[12][0]) # 点击刷新按钮
+            clickButton(hwnd_child_controls[12][0])  # 点击刷新按钮
             time.sleep(1)
         time.sleep(3)
         count += 1
         if is_start:
             actual_stock_info = getStockData(set_stock_info)
-            # print('actual_stock_info', actual_stock_info)
             for row, (actual_code, actual_name, actual_price, stop_prices) in enumerate(actual_stock_info):
                 if is_start and actual_code and is_ordered[row] == 1 \
                         and set_stock_info[row][1] and set_stock_info[row][2] > 0 \
@@ -237,7 +231,7 @@ class StockGui:
             Entry(frame1, textvariable=self.variable[row][2], state=DISABLED,
                   width=8).grid(row=row + 2, column=3, padx=5, pady=5)
             Combobox(frame1, values=('<', '>'), textvariable=self.variable[row][3],
-                    width=2).grid(row=row + 2, column=4, padx=5, pady=5)
+                     width=2).grid(row=row + 2, column=4, padx=5, pady=5)
             Spinbox(frame1, from_=0, to=1000, textvariable=self.variable[row][4],
                     increment=0.01, width=6).grid(row=row + 2, column=5, padx=5, pady=5)
             Combobox(frame1, values=('B', 'S'), textvariable=self.variable[row][5],
@@ -323,7 +317,7 @@ class StockGui:
                     self.variable[row][col].set(set_stock_info[row][4])
                 elif col == 7:
                     temp = set_stock_info[row][5].strftime('%X')
-                    if  temp == '01:00:00':
+                    if temp == '01:00:00':
                         self.variable[row][col].set('')
                     else:
                         self.variable[row][col].set(temp)
