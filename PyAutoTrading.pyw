@@ -3,93 +3,76 @@
 __author__ = '人在江湖'
 __email__ = 'ronghui.ding@outlook.com'
 
-import time
 import tkinter.messagebox
 from tkinter import *
 from tkinter.ttk import *
 import datetime
 import threading
 import pickle
+import time
 
-import win32con
 import tushare as ts
 
-from winguiauto import (findSpecifiedWindows, findPopupWindow,
-                        findControl, clickButton, click, setEditText,
-                        findSpecifiedTopWindow, sendKey)
+from winguiauto import (dumpWindows, clickButton, click, setEditText,
+                        findSubWindows, closePopupWindow,
+                        findTopWindow)
 
 is_start = False
 is_monitor = True
 set_stock_info = []
-order_msg = []
+consignation_info = []
 actual_stock_info = []
 is_ordered = [1] * 5  # 1：准备  0：交易成功 -1：交易失败
 
 
-def pickHwndOfControls(top_hwnd, num_child_windows):
-    cleaned_hwnd_controls = []
-    hwnd_controls = findSpecifiedWindows(top_hwnd, num_child_windows)
-    for Hwnd, text_name, class_name in hwnd_controls:
-        if class_name in ('Button', 'Edit'):
-            cleaned_hwnd_controls.append((Hwnd, text_name, class_name))
-    return cleaned_hwnd_controls
+class Operation:
+    def __init__(self, top_hwnd):
+        try:
+            self.top_hwnd = top_hwnd
+            temp_hwnds = dumpWindows(top_hwnd)
+            wanted_hwnds = findSubWindows(temp_hwnds, 70)
+            self.control_hwnds = []
+            for hwnd, text_name, class_name in wanted_hwnds:
+                if class_name in ('Button', 'Edit'):
+                    self.control_hwnds.append((hwnd, text_name, class_name))
+        except:
+            tkinter.messagebox.showerror('错误', '无法获得对买对卖界面的窗口句柄')
 
-
-def closePopupWindow(top_hwnd, wantedText=None, wantedClass=None):
-    # 如果有弹出式窗口，点击它的确定按钮
-    hwnd_popup = findPopupWindow(top_hwnd)
-    if hwnd_popup:
-        hwnd_control = findControl(hwnd_popup, wantedText, wantedClass)
-        clickButton(hwnd_control)
+    def __buy(self, code, stop_price, quantity):
+        click(self.control_hwnds[0][0])
+        setEditText(self.control_hwnds[0][0], code)
+        setEditText(self.control_hwnds[1][0], stop_price)
+        time.sleep(0.2)
+        setEditText(self.control_hwnds[2][0], quantity)
+        time.sleep(0.2)
+        clickButton(self.control_hwnds[3][0])
         time.sleep(1)
-        return True
-    return False
 
+    def __sell(self, code, stop_price, quantity):
+        click(self.control_hwnds[4][0])
+        setEditText(self.control_hwnds[4][0], code)
+        setEditText(self.control_hwnds[5][0], stop_price)
+        time.sleep(0.2)
+        setEditText(self.control_hwnds[6][0], quantity)
+        time.sleep(0.2)
+        clickButton(self.control_hwnds[7][0])
+        time.sleep(1)
 
-def buy(hwnd_lst, code, stop_price, quantity):
-    click(hwnd_lst[0][0])
-    setEditText(hwnd_lst[0][0], code)
-    setEditText(hwnd_lst[1][0], stop_price)
-    time.sleep(0.2)
-    setEditText(hwnd_lst[2][0], quantity)
-    time.sleep(0.2)
-    clickButton(hwnd_lst[3][0])
-    time.sleep(1)
+    def order(self, code, stop_prices, direction, quantity):
+        # 检测交易软件是否挂起或出错
+        print('I am in order')
+        print('direction', direction)
+        print('quantity', quantity)
+        if closePopupWindow(self.top_hwnd):
+            time.sleep(5)
+        if direction == 'B':
+            self.__buy(code, stop_prices[0], quantity)
+        if direction == 'S':
+            self.__sell(code, stop_prices[1], quantity)
+        return not closePopupWindow(self.top_hwnd)
 
-
-def sell(hwnd_lst, code, stop_price, quantity):
-    click(hwnd_lst[4][0])
-    setEditText(hwnd_lst[4][0], code)
-    setEditText(hwnd_lst[5][0], stop_price)
-    time.sleep(0.2)
-    setEditText(hwnd_lst[6][0], quantity)
-    time.sleep(0.2)
-    clickButton(hwnd_lst[7][0])
-    time.sleep(1)
-
-
-def order(top_hwnd, hwnd_lst, code, stop_prices, quantity, direction):
-    # 检测交易软件是否挂起或出错
-    if closePopupWindow(top_hwnd, wantedClass='Button'):
-        time.sleep(5)
-    if direction == 'B':
-        buy(hwnd_lst, code, stop_prices[0], quantity)
-        return not closePopupWindow(top_hwnd, wantedClass='Button')
-    if direction == 'S':
-        sell(hwnd_lst, code, stop_prices[1], quantity)
-        return not closePopupWindow(top_hwnd, wantedClass='Button')
-
-
-def tradingInit():
-    # 获取交易软件及子控件句柄
-    hwnd = findSpecifiedTopWindow(wantedText='网上股票交易系统5.0')
-    if hwnd == 0:
-        tkinter.messagebox.showerror('错误', '请先打开华泰证券交易软件，再运行本软件')
-        return hwnd, []
-    else:
-        sendKey(hwnd, win32con.VK_F6)
-        hwnd_child_controls = pickHwndOfControls(hwnd, 70)
-    return hwnd, hwnd_child_controls
+    def clickRefreshButton(self):
+        clickButton(self.control_hwnds[12][0])
 
 
 def pickCodeFromItems(items_info):
@@ -136,16 +119,18 @@ def getStockData(items_info):
 
 def monitor():
     # 股价监控函数
-    global actual_stock_info, order_msg, is_ordered, set_stock_info
+
+    global actual_stock_info, consignation_info, is_ordered, set_stock_info
     count = 1
-    hwnd, hwnd_child_controls = tradingInit()
-    # 如果hwnd为零，直接终止循环
-    while is_monitor and hwnd:
-        if count % 100 == 0:
-            clickButton(hwnd_child_controls[12][0])  # 点击刷新按钮
-            time.sleep(1)
-        time.sleep(3)
-        count += 1
+
+    top_hwnd = findTopWindow(wantedText='网上股票交易系统5.0')
+    if top_hwnd == 0:
+        tkinter.messagebox.showerror('错误', '请先打开华泰证券交易软件，再运行本软件')
+    else:
+        operation = Operation(top_hwnd)
+
+    while is_monitor and top_hwnd:
+
         if is_start:
             actual_stock_info = getStockData(set_stock_info)
             for row, (actual_code, actual_name, actual_price, stop_prices) in enumerate(actual_stock_info):
@@ -153,36 +138,40 @@ def monitor():
                         and set_stock_info[row][1] and set_stock_info[row][2] > 0 \
                         and set_stock_info[row][3] and set_stock_info[row][4] \
                         and datetime.datetime.now().time() > set_stock_info[row][5]:
-                    if is_start and set_stock_info[row][1] == '>' and float(actual_price) > set_stock_info[row][2]:
+                    if set_stock_info[row][1] == '>' and float(actual_price) > set_stock_info[row][2]:
                         dt = datetime.datetime.now()
-                        if order(hwnd, hwnd_child_controls, actual_code, stop_prices,
-                                 set_stock_info[row][4], set_stock_info[row][3]):
-                            order_msg.append(
+                        if operation.order(actual_code, stop_prices,
+                                           set_stock_info[row][3],
+                                           set_stock_info[row][4]):
+                            consignation_info.append(
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                 actual_name, set_stock_info[row][3],
-                                 actual_price, set_stock_info[row][4], '成功'))
+                                 actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托成功'))
                             is_ordered[row] = 0
                         else:
-                            order_msg.append(
+                            consignation_info.append(
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                 actual_name, set_stock_info[row][3],
-                                 actual_price, set_stock_info[row][4], '失败'))
+                                 actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托失败'))
                             is_ordered[row] = -1
-                    if is_start and set_stock_info[row][1] == '<' and float(actual_price) < set_stock_info[row][2]:
+                    if set_stock_info[row][1] == '<' and float(actual_price) < set_stock_info[row][2]:
                         dt = datetime.datetime.now()
-                        if order(hwnd, hwnd_child_controls, actual_code, stop_prices,
-                                 set_stock_info[row][4], set_stock_info[row][3]):
-                            order_msg.append(
+                        if operation.order(actual_code, stop_prices,
+                                           set_stock_info[row][3],
+                                           set_stock_info[row][4]):
+                            consignation_info.append(
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                 actual_name, set_stock_info[row][3],
-                                 actual_price, set_stock_info[row][4], '成功'))
+                                 actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托成功'))
                             is_ordered[row] = 0
                         else:
-                            order_msg.append(
+                            consignation_info.append(
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
-                                 actual_name, set_stock_info[row][3],
-                                 actual_price, set_stock_info[row][4], '失败'))
+                                 actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托失败'))
                             is_ordered[row] = -1
+
+        if count % 100 == 0:
+            operation.clickRefreshButton()
+            time.sleep(1)
+        time.sleep(3)
+        count += 1
 
 
 class StockGui:
@@ -210,7 +199,7 @@ class StockGui:
             row=1, column=7, padx=5, pady=5)
         Label(frame1, text="时间可选", width=8, justify=CENTER).grid(
             row=1, column=8, padx=5, pady=5)
-        Label(frame1, text="状态", width=4, justify=CENTER).grid(
+        Label(frame1, text="状态", width=8, justify=CENTER).grid(
             row=1, column=9, padx=5, pady=5)
 
         self.rows = 5
@@ -240,8 +229,8 @@ class StockGui:
                     increment=100, width=6).grid(row=row + 2, column=7, padx=5, pady=5)
             Entry(frame1, textvariable=self.variable[row][7],
                   width=8).grid(row=row + 2, column=8, padx=5, pady=5)
-            Entry(frame1, textvariable=self.variable[row][8], state=DISABLED,
-                  width=4).grid(row=row + 2, column=9, padx=5, pady=5)
+            Entry(frame1, textvariable=self.variable[row][8], state=DISABLED, justify=CENTER,
+                  width=8).grid(row=row + 2, column=9, padx=5, pady=5)
 
         frame3 = Frame(self.window)
         frame3.pack(padx=10, pady=10)
@@ -263,13 +252,13 @@ class StockGui:
         显示历史信息
         :return:
         '''
-        global order_msg
+        global consignation_info
         tp = Toplevel()
         tp.title('历史记录')
         tp.resizable(0, 1)
         scrollbar = Scrollbar(tp)
         scrollbar.pack(side=RIGHT, fill=Y)
-        col_name = ['日期', '时间', '证券代码', '证券名称', '方向', '价格', '数量', '备注']
+        col_name = ['日期', '时间', '证券代码', '证券名称', '价格', '方向', '数量', '备注']
         tree = Treeview(
             tp, show='headings', columns=col_name, height=30, yscrollcommand=scrollbar.set)
         tree.pack(expand=1, fill=Y)
@@ -278,7 +267,7 @@ class StockGui:
             tree.heading(name, text=name)
             tree.column(name, width=70, anchor=CENTER)
 
-        for msg in order_msg:
+        for msg in consignation_info:
             tree.insert('', 0, values=msg)
 
     def save(self):
@@ -286,23 +275,26 @@ class StockGui:
         保存设置
         :return:
         '''
-        global set_stock_info, order_msg, actual_stock_info
+        global set_stock_info, consignation_info, actual_stock_info
         self.getItems()
+
         with open('stockInfo.dat', 'wb') as fp:
             pickle.dump(set_stock_info, fp)
-            pickle.dump(actual_stock_info, fp)
-            pickle.dump(order_msg, fp)
+            pickle.dump(consignation_info, fp)
 
     def load(self):
         '''
         载入设置
         :return:
         '''
-        global set_stock_info, order_msg, actual_stock_info
-        with open('stockInfo.dat', 'rb') as fp:
-            set_stock_info = pickle.load(fp)
-            actual_stock_info = pickle.load(fp)
-            order_msg = pickle.load(fp)
+        global set_stock_info, consignation_info, actual_stock_info
+        try:
+            with open('stockInfo.dat', 'rb') as fp:
+                set_stock_info = pickle.load(fp)
+                consignation_info = pickle.load(fp)
+        except FileNotFoundError as error:
+            tkinter.messagebox.showerror('错误', error)
+
         for row in range(self.rows):
             for col in range(self.cols):
                 if col == 0:
@@ -343,11 +335,11 @@ class StockGui:
                     self.variable[row][1].set(actual_name)
                     self.variable[row][2].set(str(actual_price))
                     if is_ordered[row] == 1:
-                        self.variable[row][8].set('监控')
+                        self.variable[row][8].set('监控中')
                     elif is_ordered[row] == -1:
-                        self.variable[row][8].set('失败')
+                        self.variable[row][8].set('委托失败')
                     elif is_ordered[row] == 0:
-                        self.variable[row][8].set('成功')
+                        self.variable[row][8].set('委托成功')
 
         self.window.after(3000, self.updateControls)
 
@@ -361,7 +353,6 @@ class StockGui:
 
         if is_start:
             self.getItems()
-            # print(set_stock_info)
             self.start_bt['text'] = '停止'
             self.set_bt['state'] = DISABLED
             self.load_bt['state'] = DISABLED
@@ -423,8 +414,7 @@ class StockGui:
 
 if __name__ == '__main__':
     t1 = threading.Thread(target=StockGui)
-    t2 = threading.Thread(target=monitor)
     t1.start()
+    t1.join(2)
+    t2 = threading.Thread(target=monitor)
     t2.start()
-    t1.join()
-    t2.join()
