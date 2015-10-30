@@ -28,48 +28,46 @@ is_ordered = [1] * 5  # 1：准备  0：交易成功 -1：交易失败
 class Operation:
     def __init__(self, top_hwnd):
         try:
-            self.top_hwnd = top_hwnd
+            self.__top_hwnd = top_hwnd
             temp_hwnds = dumpWindows(top_hwnd)
             wanted_hwnds = findSubWindows(temp_hwnds, 70)
-            self.control_hwnds = []
+            self.__control_hwnds = []
             for hwnd, text_name, class_name in wanted_hwnds:
                 if class_name in ('Button', 'Edit'):
-                    self.control_hwnds.append((hwnd, text_name, class_name))
+                    self.__control_hwnds.append((hwnd, text_name, class_name))
         except:
             tkinter.messagebox.showerror('错误', '无法获得对买对卖界面的窗口句柄')
 
     def __buy(self, code, stop_price, quantity):
-        click(self.control_hwnds[0][0])
-        setEditText(self.control_hwnds[0][0], code)
-        setEditText(self.control_hwnds[1][0], stop_price)
+        click(self.__control_hwnds[0][0])
+        setEditText(self.__control_hwnds[0][0], code)
+        setEditText(self.__control_hwnds[1][0], stop_price)
         time.sleep(0.2)
-        setEditText(self.control_hwnds[2][0], quantity)
+        setEditText(self.__control_hwnds[2][0], quantity)
         time.sleep(0.2)
-        clickButton(self.control_hwnds[3][0])
+        clickButton(self.__control_hwnds[3][0])
         time.sleep(1)
 
     def __sell(self, code, stop_price, quantity):
-        click(self.control_hwnds[4][0])
-        setEditText(self.control_hwnds[4][0], code)
-        setEditText(self.control_hwnds[5][0], stop_price)
+        click(self.__control_hwnds[4][0])
+        setEditText(self.__control_hwnds[4][0], code)
+        setEditText(self.__control_hwnds[5][0], stop_price)
         time.sleep(0.2)
-        setEditText(self.control_hwnds[6][0], quantity)
+        setEditText(self.__control_hwnds[6][0], quantity)
         time.sleep(0.2)
-        clickButton(self.control_hwnds[7][0])
+        clickButton(self.__control_hwnds[7][0])
         time.sleep(1)
 
     def order(self, code, stop_prices, direction, quantity):
         # 检测交易软件是否挂起或出错
-        if closePopupWindow(self.top_hwnd):
-            time.sleep(5)
         if direction == 'B':
             self.__buy(code, stop_prices[0], quantity)
         if direction == 'S':
             self.__sell(code, stop_prices[1], quantity)
-        return not closePopupWindow(self.top_hwnd)
+        return not closePopupWindow(self.__top_hwnd)
 
     def clickRefreshButton(self):
-        clickButton(self.control_hwnds[12][0])
+        clickButton(self.__control_hwnds[12][0])
 
 
 def pickCodeFromItems(items_info):
@@ -164,7 +162,7 @@ def monitor():
                                  actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托失败'))
                             is_ordered[row] = -1
 
-        if count % 100 == 0:
+        if count % 200 == 0:
             operation.clickRefreshButton()
             time.sleep(1)
         time.sleep(3)
