@@ -60,9 +60,6 @@ class Operation:
 
     def order(self, code, stop_prices, direction, quantity):
         # 检测交易软件是否挂起或出错
-        print('I am in order')
-        print('direction', direction)
-        print('quantity', quantity)
         if closePopupWindow(self.top_hwnd):
             time.sleep(5)
         if direction == 'B':
@@ -333,13 +330,17 @@ class StockGui:
             for row, (actual_code, actual_name, actual_price, _) in enumerate(actual_stock_info):
                 if actual_code:
                     self.variable[row][1].set(actual_name)
-                    self.variable[row][2].set(str(actual_price))
+                    self.variable[row][2].set(actual_price)
                     if is_ordered[row] == 1:
                         self.variable[row][8].set('监控中')
                     elif is_ordered[row] == -1:
                         self.variable[row][8].set('委托失败')
                     elif is_ordered[row] == 0:
                         self.variable[row][8].set('委托成功')
+                else:
+                    self.variable[row][1].set('')
+                    self.variable[row][2].set('')
+                    self.variable[row][8].set('')
 
         self.window.after(3000, self.updateControls)
 
