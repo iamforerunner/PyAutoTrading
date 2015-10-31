@@ -26,11 +26,11 @@ is_ordered = [1] * 5  # 1：未下单  0：已下单
 
 
 class Operation:
-    def __init__(self, hwnd):
+    def __init__(self, top_hwnd):
 
-        self.__hwnd = hwnd
+        self.__top_hwnd = top_hwnd
         self.__button = {'refresh': 180, 'position': 145, 'deal': 112, 'withdrawal': 83, 'sell': 50, 'buy': 20}
-        windows = dumpWindows(self.__hwnd)
+        windows = dumpWindows(self.__top_hwnd)
         temp_hwnd = 0
         for window in windows:
             child_hwnd, window_text, window_class = window
@@ -77,26 +77,26 @@ class Operation:
         :param direction: 买卖方向
         :param quantity: 数量， 字符串，数量为‘0’时，就交易软件指定数量
         """
-        restoreFocusWindow(self.__hwnd)
+        restoreFocusWindow(self.__top_hwnd)
         self.clickRefreshButton()
         if direction == 'B':
             self.__buy(code, quantity)
         if direction == 'S':
             self.__sell(code, quantity)
-        closePopupWindows(self.__hwnd)
+        closePopupWindows(self.__top_hwnd)
 
     def clickRefreshButton(self):
         """
         点击刷新按钮
         """
-        restoreFocusWindow(self.__hwnd)
+        restoreFocusWindow(self.__top_hwnd)
         clickWindow(self.__menu_hwnds[0][0], self.__button['refresh'])
 
     def getMoney(self):
         """
         :return:可用资金
         """
-        restoreFocusWindow(self.__hwnd)
+        restoreFocusWindow(self.__top_hwnd)
         self.clickRefreshButton()
         setEditText(self.__buy_sell_hwnds[24][0], '999999')  # 测试时获得资金情况
         time.sleep(0.3)
@@ -107,7 +107,7 @@ class Operation:
         """获取持仓股票信息
         """
         # self.clickRefreshButton()
-        restoreFocusWindow(self.__hwnd)
+        restoreFocusWindow(self.__top_hwnd)
         return getListViewInfo(self.__buy_sell_hwnds[64][0], 5)
 
 
