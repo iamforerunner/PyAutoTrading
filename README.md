@@ -2,7 +2,8 @@
 股票交易软件辅助工具
 
 ## 简介
-用于华泰证券独立交易软件（须有`双向委托[F6]`功能）。软件可以一次监控5只股票，根据条件下单。每次下单耗时小于1s，目前软件只能知道委托是否成功。如果有疑问，或是建议，可以发邮件联系。邮箱：ronghui.ding@outlook.com，或加入QQ群：486224275。
+用于华泰证券独立交易软件，同时支持通达信版本和同花顺版本，以上版本都需有`双向委托`界面。软件可以一次监控5只股票，根据条件下单。每次下单耗时小于1s。
+如果有疑问，或是建议，可以发邮件联系，邮箱：`ronghui.ding@outlook.com`，或加入QQ群：`486224275`。
 开发环境:win10 64bit, python3 64bit、pywin32、tushare。 以前是用python 32bit开发的，现在好像python 64bit的也能用。
 
 ## 同花顺版使用说明
@@ -11,6 +12,9 @@
 * 不写时间条件单，默认时间为凌晨1点。时间条件满足后才检查价格条件，如果只想要时间条件单而忽略价格条件单，可以写个始终满足条件的价格。
 * 股票数量最好为100的倍数，小于100股的不会交易，大于100、非整数倍的将取整, 比如150股将作为100股。
 * 时间为24小时制，形式为 `时：分：秒`， 每项都必须写， 后面的写法是错误的： `13：30`。
+* 同花顺版本支持获取持仓情况，需要把持仓表单设定为11列，通过设定`是否可见`,请看图。获取持仓数据时需要通过鼠标获取焦点(这是自动的),最小化的时会自动从任务栏恢复。
+另外，在交易软件上，把持仓表单显示出来，不要放在成交或其他表单。
+* 想使用同花顺通用版的，在`pyautotrade_ths.pyw`文件中`Operation`类的`__init__`函数的第4或5行选择一行就可以。
 
 ## 通达信版使用说明
 * 软件共有3个文件，`pyautotrade_tdx.pyw`主程序，`stockInfo.dat`存盘文件，`winguiauto.py`是封装的winapi函数
@@ -32,11 +36,12 @@
 * v 0.08 代码清理，添加了注释。现在可以同时监控5只股票。
 * v 0.09 加入自动刷新功能，每隔5分钟刷新一次，防止软件进入待机状态。
 * v 0.10 修改了几个bug，买卖价格改由python计算，加快了下单速度（0.6s），稳定性增加了不少。需更改交易软件设置，请看图。
-* v 0.11 同花顺版修复了一个严重的bug。另外取消了同花顺通用版的支持。
+* v 0.11 同花顺版修复了一个严重的bug。
 * v 0.12 接口函数改用类重写。winguiauto.py和通达信一致, 修复一个UI显示错误。
+* v 0.13 同花顺版本支持获取持仓和资金了。通达信版没有变化。
 
-## Todo
-* 同花顺版增加持仓函数
+## Bugs
+* 集合竞价时获取价格为零,导致误下单
 
 
 
@@ -46,6 +51,8 @@
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting2_ths.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting3_ths.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting4_ths.png)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting5_ths.png)
+![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting6_ths.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting1_tdx.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting2_tdx.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting3_tdx.png)

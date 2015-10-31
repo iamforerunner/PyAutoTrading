@@ -10,11 +10,12 @@ import threading
 import pickle
 import time
 
+import win32con
 import tushare as ts
 
 from winguiauto import (dumpWindows, clickButton, click, setEditText,
-                        findSubWindows, closePopupWindow,
-                        findTopWindow)
+                        findSubWindows, closePopupWindow, clickWindow,
+                        findTopWindow, getTableData, sendKeyEvent, restoreFocusWindow)
 
 is_start = False
 is_monitor = True
@@ -29,9 +30,10 @@ class Operation:
         try:
             self.__top_hwnd = top_hwnd
             temp_hwnds = dumpWindows(top_hwnd)
-            wanted_hwnds = findSubWindows(temp_hwnds, 70)
+            self.__wanted_hwnds = findSubWindows(temp_hwnds, 70)  # 华泰专用版
+            # self.__wanted_hwnds = findSubWindows(temp_hwnds, 73)   # 同花顺通用版
             self.__control_hwnds = []
-            for hwnd, text_name, class_name in wanted_hwnds:
+            for hwnd, text_name, class_name in self.__wanted_hwnds:
                 if class_name in ('Button', 'Edit'):
                     self.__control_hwnds.append((hwnd, text_name, class_name))
         except:
@@ -58,7 +60,6 @@ class Operation:
         time.sleep(1)
 
     def order(self, code, stop_prices, direction, quantity):
-        # 检测交易软件是否挂起或出错
         if direction == 'B':
             self.__buy(code, stop_prices[0], quantity)
         if direction == 'S':
@@ -67,6 +68,18 @@ class Operation:
 
     def clickRefreshButton(self):
         clickButton(self.__control_hwnds[12][0])
+
+    def getMoney(self):
+        return float(self.__wanted_hwnds[51][1])
+
+    def getPosition(self):
+        restoreFocusWindow(self.__top_hwnd)
+        clickWindow(self.__wanted_hwnds[-2][0], 20)
+        sendKeyEvent(win32con.VK_CONTROL, 0)
+        sendKeyEvent(ord('C'), 0)
+        sendKeyEvent(ord('C'), win32con.KEYEVENTF_KEYUP)
+        sendKeyEvent(win32con.VK_CONTROL, win32con.KEYEVENTF_KEYUP)
+        return getTableData(11)
 
 
 def pickCodeFromItems(items_info):
@@ -146,6 +159,7 @@ def monitor():
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                                  actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托失败'))
                             is_ordered[row] = -1
+                        time.sleep(1)
                     if set_stock_info[row][1] == '<' and float(actual_price) < set_stock_info[row][2]:
                         dt = datetime.datetime.now()
                         if operation.order(actual_code, stop_prices,
@@ -160,6 +174,7 @@ def monitor():
                                 (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                                  actual_name, actual_price, set_stock_info[row][3], set_stock_info[row][4], '委托失败'))
                             is_ordered[row] = -1
+                        time.sleep(1)
 
         if count % 200 == 0:
             operation.clickRefreshButton()

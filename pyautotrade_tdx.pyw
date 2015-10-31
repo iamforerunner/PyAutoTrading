@@ -13,7 +13,7 @@ import time
 import tushare as ts
 
 from winguiauto import (dumpWindow, dumpWindows, getWindowText,
-                        getListViewInfo, setEditText, clickMenuButton,
+                        getListViewInfo, setEditText, clickWindow,
                         click, closePopupWindows, findTopWindow)
 
 is_start = False
@@ -87,7 +87,7 @@ class Operation:
         """
         点击刷新按钮
         """
-        clickMenuButton(self.__menu_hwnds[0][0], self.__button['refresh'])
+        clickWindow(self.__menu_hwnds[0][0], self.__button['refresh'])
 
     def getMoney(self):
         """

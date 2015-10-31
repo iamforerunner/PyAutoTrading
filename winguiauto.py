@@ -5,6 +5,7 @@ import struct
 import win32api
 import win32gui
 import ctypes
+import win32clipboard
 
 import win32con
 import commctrl
@@ -17,35 +18,18 @@ WriteProcessMemory = ctypes.windll.kernel32.WriteProcessMemory
 ReadProcessMemory = ctypes.windll.kernel32.ReadProcessMemory
 
 
-def _readListViewItems(hwnd, column_index=0):
-    # Allocate virtual memory inside target process
-    pid = ctypes.create_string_buffer(4)
-    p_pid = ctypes.addressof(pid)
-    GetWindowThreadProcessId(hwnd, p_pid)  # process owning the given hwnd
-    hProcHnd = OpenProcess(win32con.PROCESS_ALL_ACCESS, False, struct.unpack("i", pid)[0])
-    pLVI = VirtualAllocEx(hProcHnd, 0, 4096, win32con.MEM_RESERVE | win32con.MEM_COMMIT, win32con.PAGE_READWRITE)
-    pBuffer = VirtualAllocEx(hProcHnd, 0, 4096, win32con.MEM_RESERVE | win32con.MEM_COMMIT, win32con.PAGE_READWRITE)
+def restoreFocusWindow(hwnd):
+    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+    win32gui.SetForegroundWindow(hwnd)
+    time.sleep(0.2)
 
-    # Prepare an LVITEM record and write it to target process memory
-    lvitem_str = struct.pack('iiiiiiiii', *[0, 0, column_index, 0, 0, pBuffer, 4096, 0, 0])
-    lvitem_buffer = ctypes.create_string_buffer(lvitem_str)
-    copied = ctypes.create_string_buffer(4)
-    p_copied = ctypes.addressof(copied)
-    WriteProcessMemory(hProcHnd, pLVI, ctypes.addressof(lvitem_buffer), ctypes.sizeof(lvitem_buffer), p_copied)
-
-    # iterate items in the SysListView32 control
-    num_items = win32gui.SendMessage(hwnd, commctrl.LVM_GETITEMCOUNT)
-    item_texts = []
-    for item_index in range(num_items):
-        win32gui.SendMessage(hwnd, commctrl.LVM_GETITEMTEXT, item_index, pLVI)
-        target_buff = ctypes.create_string_buffer(4096)
-        ReadProcessMemory(hProcHnd, pBuffer, ctypes.addressof(target_buff), 4096, p_copied)
-        item_texts.append(target_buff.value)
-
-    VirtualFreeEx(hProcHnd, pBuffer, 0, win32con.MEM_RELEASE)
-    VirtualFreeEx(hProcHnd, pLVI, 0, win32con.MEM_RELEASE)
-    win32api.CloseHandle(hProcHnd)
-    return item_texts
+def getTableData(cols):
+    content = _getContentsFromClipboard()
+    lst = content.strip().split()[:-1]
+    matrix = []
+    for i in range(0, len(lst) // cols):
+        matrix.append(lst[i * cols:(i + 1) * cols])
+    return matrix[1:]
 
 
 def getListViewInfo(hwnd, cols):
@@ -155,6 +139,22 @@ def dumpWindows(hwnd):
     windows = []
     win32gui.EnumChildWindows(hwnd, _windowEnumerationHandler, windows)
     return windows
+
+
+def closePopupWindow(top_hwnd, wantedText=None, wantedClass=None):
+    """
+    关闭一个弹窗。
+    :param top_hwnd: 主窗口句柄
+    :param wantedText: 弹出对话框上的按钮文本
+    :param wantedClass: 弹出对话框上的按钮类名
+    :return: 如果有弹出式对话框，返回True，否则返回False
+    """
+    hwnd_popup = findPopupWindow(top_hwnd)
+    if hwnd_popup:
+        hwnd_control = findControl(hwnd_popup, wantedText, wantedClass)
+        clickButton(hwnd_control)
+        return True
+    return False
 
 
 def closePopupWindows(top_hwnd):
@@ -319,8 +319,9 @@ def click(hwnd):
     :return:
     """
     win32gui.PostMessage(hwnd, win32con.WM_LBUTTONDOWN, None, None)
-    time.sleep(.2)
+    time.sleep(0.2)
     win32gui.PostMessage(hwnd, win32con.WM_LBUTTONUP, None, None)
+    time.sleep(0.2)
 
 
 def focusWindow(hwnd):
@@ -333,16 +334,17 @@ def focusWindow(hwnd):
     win32gui.SetForegroundWindow(hwnd)
 
 
-def clickMenuButton(hwnd, offset):
+def clickWindow(hwnd, offset):
     left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+    # print('left, top, right, bottom', left, top, right, bottom)
     win32api.SetCursorPos([left + offset, (bottom - top) // 2 + top])
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(0.1)
+    time.sleep(0.2)
     win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-    time.sleep(0.3)
+    time.sleep(0.2)
 
 
-def sendKey(hwnd, key_code):
+def sendKeyMsg(hwnd, key_code):
     """
     模拟按键
     :param hwnd: 窗体句柄
@@ -350,8 +352,14 @@ def sendKey(hwnd, key_code):
     :return:
     """
     win32gui.PostMessage(hwnd, win32con.WM_KEYDOWN, key_code, 0)  # 消息键盘
-    time.sleep(.2)
+    time.sleep(0.2)
     win32gui.PostMessage(hwnd, win32con.WM_KEYUP, key_code, 0)
+    time.sleep(0.2)
+
+
+def sendKeyEvent(key, command):
+    win32api.keybd_event(key, 0, command, 0)
+    time.sleep(0.2)
 
 
 def clickStatic(hwnd):
@@ -468,21 +476,42 @@ def setEditText(hwnd, text):
 #                      True,
 #                      os.linesep.join(text))
 
+def _readListViewItems(hwnd, column_index=0):
+    # Allocate virtual memory inside target process
+    pid = ctypes.create_string_buffer(4)
+    p_pid = ctypes.addressof(pid)
+    GetWindowThreadProcessId(hwnd, p_pid)  # process owning the given hwnd
+    hProcHnd = OpenProcess(win32con.PROCESS_ALL_ACCESS, False, struct.unpack("i", pid)[0])
+    pLVI = VirtualAllocEx(hProcHnd, 0, 4096, win32con.MEM_RESERVE | win32con.MEM_COMMIT, win32con.PAGE_READWRITE)
+    pBuffer = VirtualAllocEx(hProcHnd, 0, 4096, win32con.MEM_RESERVE | win32con.MEM_COMMIT, win32con.PAGE_READWRITE)
 
-def closePopupWindow(top_hwnd, wantedText=None, wantedClass=None):
-    """
-    关闭一个弹窗。
-    :param top_hwnd: 主窗口句柄
-    :param wantedText: 弹出对话框上的按钮文本
-    :param wantedClass: 弹出对话框上的按钮类名
-    :return: 如果有弹出式对话框，返回True，否则返回False
-    """
-    hwnd_popup = findPopupWindow(top_hwnd)
-    if hwnd_popup:
-        hwnd_control = findControl(hwnd_popup, wantedText, wantedClass)
-        clickButton(hwnd_control)
-        return True
-    return False
+    # Prepare an LVITEM record and write it to target process memory
+    lvitem_str = struct.pack('iiiiiiiii', *[0, 0, column_index, 0, 0, pBuffer, 4096, 0, 0])
+    lvitem_buffer = ctypes.create_string_buffer(lvitem_str)
+    copied = ctypes.create_string_buffer(4)
+    p_copied = ctypes.addressof(copied)
+    WriteProcessMemory(hProcHnd, pLVI, ctypes.addressof(lvitem_buffer), ctypes.sizeof(lvitem_buffer), p_copied)
+
+    # iterate items in the SysListView32 control
+    num_items = win32gui.SendMessage(hwnd, commctrl.LVM_GETITEMCOUNT)
+    item_texts = []
+    for item_index in range(num_items):
+        win32gui.SendMessage(hwnd, commctrl.LVM_GETITEMTEXT, item_index, pLVI)
+        target_buff = ctypes.create_string_buffer(4096)
+        ReadProcessMemory(hProcHnd, pBuffer, ctypes.addressof(target_buff), 4096, p_copied)
+        item_texts.append(target_buff.value)
+
+    VirtualFreeEx(hProcHnd, pBuffer, 0, win32con.MEM_RELEASE)
+    VirtualFreeEx(hProcHnd, pLVI, 0, win32con.MEM_RELEASE)
+    win32api.CloseHandle(hProcHnd)
+    return item_texts
+
+
+def _getContentsFromClipboard():
+    win32clipboard.OpenClipboard()
+    content = win32clipboard.GetClipboardData()
+    win32clipboard.CloseClipboard()
+    return content
 
 
 def _windowEnumerationHandler(hwnd, resultList):
