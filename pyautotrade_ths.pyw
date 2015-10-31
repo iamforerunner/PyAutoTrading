@@ -37,9 +37,15 @@ class Operation:
                 if class_name in ('Button', 'Edit'):
                     self.__control_hwnds.append((hwnd, text_name, class_name))
         except:
-            tkinter.messagebox.showerror('错误', '无法获得对买对卖界面的窗口句柄')
+            tkinter.messagebox.showerror('错误', '无法获得双向委托界面的窗口句柄')
 
     def __buy(self, code, stop_price, quantity):
+        """下买单
+        :param code: 代码
+        :param stop_price: 涨停价
+        :param quantity: 数量
+        :return:
+        """
         click(self.__control_hwnds[0][0])
         setEditText(self.__control_hwnds[0][0], code)
         setEditText(self.__control_hwnds[1][0], stop_price)
@@ -50,6 +56,8 @@ class Operation:
         time.sleep(1)
 
     def __sell(self, code, stop_price, quantity):
+        """下卖单
+        """
         click(self.__control_hwnds[4][0])
         setEditText(self.__control_hwnds[4][0], code)
         setEditText(self.__control_hwnds[5][0], stop_price)
@@ -60,6 +68,9 @@ class Operation:
         time.sleep(1)
 
     def order(self, code, stop_prices, direction, quantity):
+        """
+        下单函数
+        """
         restoreFocusWindow(self.__top_hwnd)
         if direction == 'B':
             self.__buy(code, stop_prices[0], quantity)
@@ -68,14 +79,23 @@ class Operation:
         return not closePopupWindow(self.__top_hwnd)
 
     def clickRefreshButton(self):
+        """
+        点击刷新按钮
+        """
         restoreFocusWindow(self.__top_hwnd)
         clickButton(self.__control_hwnds[12][0])
 
     def getMoney(self):
+        """
+        获取可用资金
+        """
         restoreFocusWindow(self.__top_hwnd)
         return float(self.__wanted_hwnds[51][1])
 
     def getPosition(self):
+        """
+        获取股票持仓
+        """
         restoreFocusWindow(self.__top_hwnd)
         clickWindow(self.__wanted_hwnds[-2][0], 20)
         sendKeyEvent(win32con.VK_CONTROL, 0)
@@ -86,6 +106,11 @@ class Operation:
 
 
 def pickCodeFromItems(items_info):
+    """
+    单独提取股票代码，没写的用空字符代替
+    :param items_info: 用户填写的所有信息
+    :return: 股票代码，包含空字符
+    """
     stock_codes = []
     for item in items_info:
         stock_codes.append(item[0])
@@ -93,11 +118,11 @@ def pickCodeFromItems(items_info):
 
 
 def getStockData(items_info):
-    '''
-    获取股票数据
-    :param items_info:
-    :return:
-    '''
+    """
+    获取股票实时数据
+    :param items_info: 股票信息，没写的股票用空字符代替
+    :return: 股票名称价格
+    """
     code_name_price = []
     stock_codes = pickCodeFromItems(items_info)
     try:
@@ -128,7 +153,9 @@ def getStockData(items_info):
 
 
 def monitor():
-    # 股价监控函数
+    """
+    监控函数，实时获取股价，满足条件就下单
+    """
 
     global actual_stock_info, consignation_info, is_ordered, set_stock_info
     count = 1
@@ -260,10 +287,10 @@ class StockGui:
         self.window.mainloop()
 
     def displayHisRecords(self):
-        '''
+        """
         显示历史信息
         :return:
-        '''
+        """
         global consignation_info
         tp = Toplevel()
         tp.title('历史记录')
@@ -283,10 +310,10 @@ class StockGui:
             tree.insert('', 0, values=msg)
 
     def save(self):
-        '''
+        """
         保存设置
         :return:
-        '''
+        """
         global set_stock_info, consignation_info, actual_stock_info
         self.getItems()
 
@@ -295,10 +322,10 @@ class StockGui:
             pickle.dump(consignation_info, fp)
 
     def load(self):
-        '''
+        """
         载入设置
         :return:
-        '''
+        """
         global set_stock_info, consignation_info, actual_stock_info
         try:
             with open('stockInfo.dat', 'rb') as fp:
@@ -327,19 +354,19 @@ class StockGui:
                         self.variable[row][col].set(temp)
 
     def setFlags(self):
-        '''
+        """
         重置买卖标志
         :return:
-        '''
+        """
         global is_start, is_ordered
         if is_start is False:
             is_ordered = [1] * 5
 
     def updateControls(self):
-        '''
-        实时股票名称、价格、状态信息
+        """
+        实时刷新股票名称、价格、状态信息
         :return:
-        '''
+        """
         global set_stock_info, actual_stock_info, is_start
         if is_start:
             for row, (actual_code, actual_name, actual_price, _) in enumerate(actual_stock_info):
@@ -378,7 +405,10 @@ class StockGui:
             self.load_bt['state'] = NORMAL
 
     def close(self):
-        # 关闭软件时，停止monitor线程
+        """
+        关闭软件是终止monitor线程
+        :return:
+        """
         global is_monitor
         is_monitor = False
         self.window.quit()
@@ -387,7 +417,6 @@ class StockGui:
         global set_stock_info
         set_stock_info = []
 
-        # 获取买卖价格数量输入项等
         for row in range(self.rows):
             set_stock_info.append([])
             for col in range(self.cols):
