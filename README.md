@@ -3,7 +3,7 @@
 
 ## 简介
 用于华泰证券独立交易软件（须有`双向委托[F6]`功能）。软件可以一次监控5只股票，根据条件下单。每次下单耗时小于1s，目前软件只能知道委托是否成功。如果有疑问，或是建议，可以发邮件联系。邮箱：ronghui.ding@outlook.com，或加入QQ群：486224275。
-开发环境是win10 64bit, python3 64bit、pywin32、tushare。 以前是用python 32bit开发的，现在好像python 64bit的也能用。
+开发环境:win10 64bit, python3 64bit、pywin32、tushare。 以前是用python 32bit开发的，现在好像python 64bit的也能用。
 
 ## 同花顺版使用说明
 * 软件共有3个文件，`pyautotrade_ths.pyw`主程序，`stockInfo.dat`存盘文件，`winguiauto.py`是封装的winapi函数。
@@ -35,7 +35,8 @@
 * v 0.11 修复了一个bug。另外取消了同花顺通用版的支持。
 * v 0.12 接口函数改用类重写。winguiauto.py和通达信一致, 修复一个UI显示错误。
 
-
+## Todo
+* 同花顺版增加持仓函数
 -----------------------------------
 
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting1_ths.png)
