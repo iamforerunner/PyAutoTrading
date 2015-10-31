@@ -14,7 +14,8 @@ import tushare as ts
 
 from winguiauto import (dumpWindow, dumpWindows, getWindowText,
                         getListViewInfo, setEditText, clickWindow,
-                        click, closePopupWindows, findTopWindow)
+                        click, closePopupWindows, findTopWindow,
+                        restoreFocusWindow)
 
 is_start = False
 is_monitor = True
@@ -76,6 +77,7 @@ class Operation:
         :param direction: 买卖方向
         :param quantity: 数量， 字符串，数量为‘0’时，就交易软件指定数量
         """
+        restoreFocusWindow(self.__hwnd)
         self.clickRefreshButton()
         if direction == 'B':
             self.__buy(code, quantity)
@@ -87,12 +89,14 @@ class Operation:
         """
         点击刷新按钮
         """
+        restoreFocusWindow(self.__hwnd)
         clickWindow(self.__menu_hwnds[0][0], self.__button['refresh'])
 
     def getMoney(self):
         """
         :return:可用资金
         """
+        restoreFocusWindow(self.__hwnd)
         self.clickRefreshButton()
         setEditText(self.__buy_sell_hwnds[24][0], '999999')  # 测试时获得资金情况
         time.sleep(0.3)
@@ -103,6 +107,7 @@ class Operation:
         """获取持仓股票信息
         """
         # self.clickRefreshButton()
+        restoreFocusWindow(self.__hwnd)
         return getListViewInfo(self.__buy_sell_hwnds[64][0], 5)
 
 
