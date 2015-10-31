@@ -37,6 +37,9 @@
 
 ## Todo
 * 同花顺版增加持仓函数
+
+
+
 -----------------------------------
 
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting1_ths.png)
