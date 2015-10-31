@@ -60,6 +60,7 @@ class Operation:
         time.sleep(1)
 
     def order(self, code, stop_prices, direction, quantity):
+        restoreFocusWindow(self.__top_hwnd)
         if direction == 'B':
             self.__buy(code, stop_prices[0], quantity)
         if direction == 'S':
@@ -67,9 +68,11 @@ class Operation:
         return not closePopupWindow(self.__top_hwnd)
 
     def clickRefreshButton(self):
+        restoreFocusWindow(self.__top_hwnd)
         clickButton(self.__control_hwnds[12][0])
 
     def getMoney(self):
+        restoreFocusWindow(self.__top_hwnd)
         return float(self.__wanted_hwnds[51][1])
 
     def getPosition(self):
