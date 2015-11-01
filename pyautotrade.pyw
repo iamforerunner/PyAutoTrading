@@ -18,7 +18,7 @@ from winguiauto import (dumpWindow, dumpWindows, getWindowText,
                         click, closePopupWindows, findTopWindow,
                         restoreFocusWindow, getTableData, sendKeyEvent)
 
-NUM_OF_STOCKS = 5    # 自定义股票数量
+NUM_OF_STOCKS = 5  # 自定义股票数量
 is_start = False
 is_monitor = True
 set_stocks_info = []
@@ -30,20 +30,18 @@ stock_codes = [''] * NUM_OF_STOCKS
 
 class OperationThs:
     def __init__(self):
-        try:
-            self.__top_hwnd = findTopWindow(wantedText='网上股票交易系统5.0')
-            temp_hwnds = dumpWindows(self.__top_hwnd)[0][0]
-            temp_hwnds = dumpWindow(temp_hwnds)[4][0]  # 同花顺通用版
-            # temp_hwnds = dumpWindow(temp_hwnds)[5][0]     # 华泰专用版
-            self.__sell_buy_hwnds = dumpWindow(temp_hwnds)
-            if len(self.__sell_buy_hwnds) not in (70, 73):
-                tkinter.messagebox.showerror('错误', '无法获得同花顺双向委托界面的窗口句柄')
-            self.__control_hwnds = []
-            for hwnd, text_name, class_name in self.__sell_buy_hwnds:
-                if class_name in ('Button', 'Edit'):
-                    self.__control_hwnds.append((hwnd, text_name, class_name))
-        except:
-            tkinter.messagebox.showerror('错误', '无法获得交易软件句柄')
+
+        self.__top_hwnd = findTopWindow(wantedText='网上股票交易系统5.0')
+        temp_hwnds = dumpWindows(self.__top_hwnd)[0][0]
+        temp_hwnds = dumpWindow(temp_hwnds)[4][0]  # 同花顺通用版
+        # temp_hwnds = dumpWindow(temp_hwnds)[5][0]     # 华泰专用版
+        self.__sell_buy_hwnds = dumpWindow(temp_hwnds)
+        if len(self.__sell_buy_hwnds) not in (70, 73):
+            tkinter.messagebox.showerror('错误', '无法获得同花顺双向委托界面的窗口句柄')
+        self.__control_hwnds = []
+        for hwnd, text_name, class_name in self.__sell_buy_hwnds:
+            if class_name in ('Button', 'Edit'):
+                self.__control_hwnds.append((hwnd, text_name, class_name))
 
     def __buy(self, code, quantity):
         """下买单
@@ -275,18 +273,19 @@ def monitor():
     """
     global actual_stocks_info, consignation_info, is_ordered, set_stocks_info
     count = 1
-
     try:
-        operation = OperationTdx()
+        try:
+            operation = OperationTdx()
+        except:
+            operation = OperationThs()
     except:
-        operation = OperationThs()
-
+        tkinter.messagebox.showerror('错误', '无法获得交易软件句柄')
     while is_monitor:
 
         if is_start:
             actual_stocks_info = getStockData()
             for row, (actual_code, actual_name, actual_price) in enumerate(actual_stocks_info):
-                if is_start and actual_code and is_ordered[row] == 1 and actual_price > 0 \
+                if actual_code and is_start and is_ordered[row] == 1 and actual_price > 0 \
                         and set_stocks_info[row][1] and set_stocks_info[row][2] > 0 \
                         and set_stocks_info[row][3] and set_stocks_info[row][4] \
                         and datetime.datetime.now().time() > set_stocks_info[row][5]:
