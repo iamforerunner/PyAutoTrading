@@ -19,7 +19,7 @@ ReadProcessMemory = ctypes.windll.kernel32.ReadProcessMemory
 
 
 def restoreFocusWindow(hwnd):
-    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+    win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
     win32gui.SetForegroundWindow(hwnd)
     time.sleep(0.2)
 
