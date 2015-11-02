@@ -160,7 +160,7 @@ class OperationTdx:
         下单函数
         :param code: 股票代码， 字符串
         :param direction: 买卖方向
-        :param quantity: 数量， 字符串，数量为‘0’时，就交易软件指定数量
+        :param quantity: 数量， 字符串，数量为‘0’时，由交易软件指定数量
         """
         restoreFocusWindow(self.__top_hwnd)
         if direction == 'B':
@@ -170,15 +170,13 @@ class OperationTdx:
         closePopupWindows(self.__top_hwnd)
 
     def clickRefreshButton(self):
-        """
-        点击刷新按钮
+        """点击刷新按钮
         """
         restoreFocusWindow(self.__top_hwnd)
         clickWindow(self.__menu_hwnds[0][0], self.__button['refresh'])
 
     def getMoney(self):
-        """
-        :return:可用资金
+        """获取可用资金
         """
         self.clickRefreshButton()
         setEditText(self.__buy_sell_hwnds[24][0], '999999')  # 测试时获得资金情况
@@ -243,7 +241,6 @@ def pickCodeFromItems(items_info):
 def getStockData():
     """
     获取股票实时数据
-    :param items_info:UI下各项输入信息
     :return:股票实时数据
     """
     global stock_codes
