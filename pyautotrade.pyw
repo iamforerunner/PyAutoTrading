@@ -1,6 +1,4 @@
 # -*- encoding: utf8 -*-
-# QQ群： 486224275
-__author__ = '人在江湖'
 
 import tkinter.messagebox
 from tkinter import *
