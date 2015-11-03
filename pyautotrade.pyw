@@ -37,9 +37,9 @@ class OperationThs:
             tkinter.messagebox.showerror('错误', '无法获得同花顺双向委托界面的窗口句柄')
 
     def __buy(self, code, quantity):
-        """下买单
-        :param code: 代码
-        :param quantity: 数量
+        """买函数
+        :param code: 代码， 字符串
+        :param quantity: 数量， 字符串
         :return:
         """
         click(self.__buy_sell_hwnds[2][0])
@@ -53,7 +53,11 @@ class OperationThs:
         time.sleep(1)
 
     def __sell(self, code, quantity):
-        """下卖单
+        """
+        卖函数
+        :param code: 股票代码， 字符串
+        :param quantity: 数量， 字符串
+        :return:
         """
         click(self.__buy_sell_hwnds[11][0])
         time.sleep(0.2)
@@ -68,6 +72,10 @@ class OperationThs:
     def order(self, code, direction, quantity):
         """
         下单函数
+        :param code: 股票代码， 字符串
+        :param direction: 买卖方向， 字符串
+        :param quantity: 买卖数量， 字符串
+        :return:
         """
         restoreFocusWindow(self.__top_hwnd)
         if direction == 'B':
@@ -105,7 +113,7 @@ class OperationThs:
     def getDeal(self, code, pre_position, cur_position):
         """
         获取成交数量
-        :param code: 需检查的股票代码
+        :param code: 需检查的股票代码， 字符串
         :param pre_position: 下单前的持仓
         :param cur_position: 下单后的持仓
         :return: 0-未成交， 正整数是买入的数量， 负整数是卖出的数量
