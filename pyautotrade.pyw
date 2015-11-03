@@ -31,7 +31,7 @@ class OperationThs:
 
         self.__top_hwnd = findTopWindow(wantedText='网上股票交易系统5.0')
         temp_hwnds = dumpWindows(self.__top_hwnd)[0][0]
-        temp_hwnds = dumpWindow(temp_hwnds)[4][0]  # 同花顺通用版
+        temp_hwnds = dumpWindow(temp_hwnds)[4][0]
         self.__buy_sell_hwnds = dumpWindow(temp_hwnds)
         if len(self.__buy_sell_hwnds) != 73:
             tkinter.messagebox.showerror('错误', '无法获得同花顺双向委托界面的窗口句柄')
@@ -310,7 +310,7 @@ def monitor():
             operation = OperationThs()
     except:
         tkinter.messagebox.showerror('错误', '无法获得交易软件句柄')
-    print(operation.getMoney())
+
     while is_monitor:
 
         if is_start:
