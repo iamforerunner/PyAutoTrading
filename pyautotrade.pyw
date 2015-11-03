@@ -23,6 +23,7 @@ set_stocks_info = []
 actual_stocks_info = []
 consignation_info = []
 is_ordered = [1] * NUM_OF_STOCKS  # 1：未下单  0：已下单
+is_dealt = [0] * NUM_OF_STOCKS   # 0: 未成交   负整数：卖出数量， 正整数：买入数量
 stock_codes = [''] * NUM_OF_STOCKS
 
 
@@ -250,8 +251,8 @@ def pickCodeFromItems(items_info):
 #     :param items_info: 股票信息，没写的股票用空字符代替
 #     :return: 股票名称价格
 #     """
+#     global stock_codes
 #     code_name_price = []
-#     stock_codes = pickCodeFromItems(items_info)
 #     try:
 #         df = ts.get_realtime_quotes(stock_codes)
 #         df_len = len(df)
@@ -265,17 +266,17 @@ def pickCodeFromItems(items_info):
 #                     if 'ST' in actual_name:
 #                         highest = str(round(pre_close * 1.05, 2))
 #                         lowest = str(round(pre_close * 0.95, 2))
-#                         code_name_price.append((actual_code, actual_name, df['price'][i], (highest, lowest)))
+#                         code_name_price.append((actual_code, actual_name, float(df['price'][i]), (highest, lowest)))
 #                     else:
 #                         highest = str(round(pre_close * 1.1, 2))
 #                         lowest = str(round(pre_close * 0.9, 2))
-#                         code_name_price.append((actual_code, actual_name, df['price'][i], (highest, lowest)))
+#                         code_name_price.append((actual_code, actual_name, float(df['price'][i]), (highest, lowest)))
 #                     is_found = True
 #                     break
 #             if is_found is False:
 #                 code_name_price.append(('', '', '', ('', '')))
 #     except:
-#         code_name_price = [('', '', '', ('', ''))]
+#         code_name_price = [('', '', '', ('', ''))] * NUM_OF_STOCKS
 #     return code_name_price
 
 
@@ -309,7 +310,7 @@ def monitor():
     实时监控函数
     :return:
     """
-    global actual_stocks_info, consignation_info, is_ordered, set_stocks_info
+    global actual_stocks_info, consignation_info, is_ordered, is_dealt, set_stocks_info
     count = 1
     try:
         try:
@@ -329,22 +330,30 @@ def monitor():
                         and set_stocks_info[row][3] and set_stocks_info[row][4] \
                         and datetime.datetime.now().time() > set_stocks_info[row][5]:
                     if set_stocks_info[row][1] == '>' and actual_price > set_stocks_info[row][2]:
+                        pre_position = operation.getPosition()
                         operation.order(actual_code, set_stocks_info[row][3], set_stocks_info[row][4])
                         dt = datetime.datetime.now()
+                        is_ordered[row] = 0
+                        time.sleep(1)
+                        cur_position = operation.getPosition()
+                        is_dealt[row] = operation.getDeal(actual_code, pre_position, cur_position)
                         consignation_info.append(
                             (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                              actual_name, set_stocks_info[row][3],
-                             actual_price, set_stocks_info[row][4], '已委托'))
-                        is_ordered[row] = 0
+                             actual_price, set_stocks_info[row][4], '已委托', is_dealt[row]))
 
                     if set_stocks_info[row][1] == '<' and float(actual_price) < set_stocks_info[row][2]:
+                        pre_position = operation.getPosition()
                         operation.order(actual_code, set_stocks_info[row][3], set_stocks_info[row][4])
                         dt = datetime.datetime.now()
+                        is_ordered[row] = 0
+                        time.sleep(1)
+                        cur_position = operation.getPosition()
+                        is_dealt[row] = operation.getDeal(actual_code, pre_position, cur_position)
                         consignation_info.append(
                             (dt.strftime('%x'), dt.strftime('%X'), actual_code,
                              actual_name, set_stocks_info[row][3],
-                             actual_price, set_stocks_info[row][4], '已委托'))
-                        is_ordered[row] = 0
+                             actual_price, set_stocks_info[row][4], '已委托', is_dealt[row]))
 
         if count % 200 == 0:
             operation.clickRefreshButton()
@@ -378,11 +387,13 @@ class StockGui:
             row=1, column=7, padx=5, pady=5)
         Label(frame1, text="时间可选", width=8, justify=CENTER).grid(
             row=1, column=8, padx=5, pady=5)
-        Label(frame1, text="状态", width=6, justify=CENTER).grid(
+        Label(frame1, text="委托", width=6, justify=CENTER).grid(
             row=1, column=9, padx=5, pady=5)
+        Label(frame1, text="成交", width=6, justify=CENTER).grid(
+            row=1, column=10, padx=5, pady=5)
 
         self.rows = NUM_OF_STOCKS
-        self.cols = 9
+        self.cols = 10
 
         self.variable = []
         for row in range(self.rows):
@@ -410,6 +421,8 @@ class StockGui:
                   width=8).grid(row=row + 2, column=8, padx=5, pady=5)
             Entry(frame1, textvariable=self.variable[row][8], state=DISABLED, justify=CENTER,
                   width=6).grid(row=row + 2, column=9, padx=5, pady=5)
+            Entry(frame1, textvariable=self.variable[row][9], state=DISABLED,
+                  width=6).grid(row=row+2, column=10, padx=5, pady=5)
 
         frame3 = Frame(self.window)
         frame3.pack(padx=10, pady=10)
@@ -437,7 +450,7 @@ class StockGui:
         tp.resizable(0, 1)
         scrollbar = Scrollbar(tp)
         scrollbar.pack(side=RIGHT, fill=Y)
-        col_name = ['日期', '时间', '证券代码', '证券名称', '方向', '价格', '数量', '备注']
+        col_name = ['日期', '时间', '证券代码', '证券名称', '方向', '价格', '数量', '委托', '成交']
         tree = Treeview(
             tp, show='headings', columns=col_name, height=30, yscrollcommand=scrollbar.set)
         tree.pack(expand=1, fill=Y)
@@ -516,10 +529,12 @@ class StockGui:
                         self.variable[row][8].set('监控中')
                     elif is_ordered[row] == 0:
                         self.variable[row][8].set('已委托')
+                    self.variable[row][9].set(str(is_dealt[row]))
                 else:
                     self.variable[row][1].set('')
                     self.variable[row][2].set('')
                     self.variable[row][8].set('')
+                    self.variable[row][9].set('')
 
         self.window.after(3000, self.updateControls)
 
