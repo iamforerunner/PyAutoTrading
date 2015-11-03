@@ -14,7 +14,7 @@ import tushare as ts
 from winguiauto import (dumpWindow, dumpWindows, getWindowText,
                         getListViewInfo, setEditText, clickWindow,
                         click, closePopupWindows, findTopWindow,
-                        restoreFocusWindow, getTableData, sendKeyEvent)
+                        maxFocusWindow, minWindow, getTableData, sendKeyEvent)
 
 NUM_OF_STOCKS = 5  # 自定义股票数量
 is_start = False
@@ -78,32 +78,42 @@ class OperationThs:
         :param quantity: 买卖数量， 字符串
         :return:
         """
-        restoreFocusWindow(self.__top_hwnd)
+        # restoreFocusWindow(self.__top_hwnd)
         if direction == 'B':
             self.__buy(code, quantity)
         if direction == 'S':
             self.__sell(code, quantity)
         closePopupWindows(self.__top_hwnd)
 
+    def maximizeFocusWindow(self):
+        """
+        最大化窗口，获取焦点
+        """
+        maxFocusWindow(self.__top_hwnd)
+
+    def minimizeWindow(self):
+        """
+        最小化窗体
+        """
+        minWindow(self.__top_hwnd)
+
     def clickRefreshButton(self):
         """
         点击刷新按钮
         """
-        restoreFocusWindow(self.__top_hwnd)
         click(self.__buy_sell_hwnds[46][0])
+        time.sleep(0.5)
 
     def getMoney(self):
         """
         获取可用资金
         """
-        self.clickRefreshButton()
         return float(self.__buy_sell_hwnds[51][1])
 
     def getPosition(self):
         """
         获取股票持仓
         """
-        self.clickRefreshButton()
         clickWindow(self.__buy_sell_hwnds[-2][0], 20)
         sendKeyEvent(win32con.VK_CONTROL, 0)
         sendKeyEvent(ord('C'), 0)
@@ -185,23 +195,34 @@ class OperationTdx:
         :param direction: 买卖方向
         :param quantity: 数量， 字符串，数量为‘0’时，由交易软件指定数量
         """
-        restoreFocusWindow(self.__top_hwnd)
+        # restoreFocusWindow(self.__top_hwnd)
         if direction == 'B':
             self.__buy(code, quantity)
         if direction == 'S':
             self.__sell(code, quantity)
         closePopupWindows(self.__top_hwnd)
 
+    def maximizeFocusWindow(self):
+        '''
+        最大化窗口，获取焦点
+        '''
+        maxFocusWindow(self.__top_hwnd)
+
+    def minimizeWindow(self):
+        """
+        最小化窗体
+        """
+        minWindow(self.__top_hwnd)
+
     def clickRefreshButton(self):
         """点击刷新按钮
         """
-        restoreFocusWindow(self.__top_hwnd)
         clickWindow(self.__menu_hwnds[0][0], self.__button['refresh'])
+        time.sleep(0.5)
 
     def getMoney(self):
         """获取可用资金
         """
-        self.clickRefreshButton()
         setEditText(self.__buy_sell_hwnds[24][0], '999999')  # 测试时获得资金情况
         time.sleep(0.2)
         money = getWindowText(self.__buy_sell_hwnds[12][0]).strip()
@@ -210,7 +231,6 @@ class OperationTdx:
     def getPosition(self):
         """获取持仓股票信息
         """
-        self.clickRefreshButton()
         return getListViewInfo(self.__buy_sell_hwnds[-4][0], 3)
 
     def getDeal(self, code, pre_position, cur_position):
@@ -330,11 +350,13 @@ def monitor():
                         and set_stocks_info[row][3] and set_stocks_info[row][4] \
                         and datetime.datetime.now().time() > set_stocks_info[row][5]:
                     if set_stocks_info[row][1] == '>' and actual_price > set_stocks_info[row][2]:
+                        operation.maximizeFocusWindow()
                         pre_position = operation.getPosition()
                         operation.order(actual_code, set_stocks_info[row][3], set_stocks_info[row][4])
                         dt = datetime.datetime.now()
                         is_ordered[row] = 0
-                        time.sleep(1)
+                        # time.sleep(1)
+                        operation.clickRefreshButton()
                         cur_position = operation.getPosition()
                         is_dealt[row] = operation.getDeal(actual_code, pre_position, cur_position)
                         consignation_info.append(
@@ -343,11 +365,13 @@ def monitor():
                              actual_price, set_stocks_info[row][4], '已委托', is_dealt[row]))
 
                     if set_stocks_info[row][1] == '<' and float(actual_price) < set_stocks_info[row][2]:
+                        operation.maximizeFocusWindow()
                         pre_position = operation.getPosition()
                         operation.order(actual_code, set_stocks_info[row][3], set_stocks_info[row][4])
                         dt = datetime.datetime.now()
                         is_ordered[row] = 0
-                        time.sleep(1)
+                        # time.sleep(1)
+                        operation.clickRefreshButton()
                         cur_position = operation.getPosition()
                         is_dealt[row] = operation.getDeal(actual_code, pre_position, cur_position)
                         consignation_info.append(
@@ -411,17 +435,17 @@ class StockGui:
                   width=8).grid(row=row + 2, column=3, padx=5, pady=5)
             Combobox(frame1, values=('<', '>'), textvariable=self.variable[row][3],
                      width=2).grid(row=row + 2, column=4, padx=5, pady=5)
-            Spinbox(frame1, from_=0, to=1000, textvariable=self.variable[row][4],
+            Spinbox(frame1, from_=0, to=1000, textvariable=self.variable[row][4], justify=RIGHT,
                     increment=0.01, width=6).grid(row=row + 2, column=5, padx=5, pady=5)
             Combobox(frame1, values=('B', 'S'), textvariable=self.variable[row][5],
                      width=2).grid(row=row + 2, column=6, padx=5, pady=5)
-            Spinbox(frame1, from_=0, to=100000, textvariable=self.variable[row][6],
+            Spinbox(frame1, from_=0, to=100000, textvariable=self.variable[row][6], justify=RIGHT,
                     increment=100, width=6).grid(row=row + 2, column=7, padx=5, pady=5)
             Entry(frame1, textvariable=self.variable[row][7],
                   width=8).grid(row=row + 2, column=8, padx=5, pady=5)
             Entry(frame1, textvariable=self.variable[row][8], state=DISABLED, justify=CENTER,
                   width=6).grid(row=row + 2, column=9, padx=5, pady=5)
-            Entry(frame1, textvariable=self.variable[row][9], state=DISABLED,
+            Entry(frame1, textvariable=self.variable[row][9], state=DISABLED, justify=RIGHT,
                   width=6).grid(row=row + 2, column=10, padx=5, pady=5)
 
         frame3 = Frame(self.window)

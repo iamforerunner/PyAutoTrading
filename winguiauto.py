@@ -18,11 +18,14 @@ WriteProcessMemory = ctypes.windll.kernel32.WriteProcessMemory
 ReadProcessMemory = ctypes.windll.kernel32.ReadProcessMemory
 
 
-def restoreFocusWindow(hwnd):
+def maxFocusWindow(hwnd):
     win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
     win32gui.SetForegroundWindow(hwnd)
     time.sleep(0.2)
 
+def minWindow(hwnd):
+    win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+    time.sleep(0.2)
 
 def getTableData(cols):
     content = _getContentsFromClipboard()
