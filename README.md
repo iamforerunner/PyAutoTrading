@@ -61,5 +61,4 @@
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting5_tdx.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting6_tdx.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting7_tdx.png)
-![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/setting8_tdx.png)
 ![image](https://github.com/drongh/PyAutoTrading/raw/master/Logo/trading_ths.png)
