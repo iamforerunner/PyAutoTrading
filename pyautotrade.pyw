@@ -32,14 +32,9 @@ class OperationThs:
         self.__top_hwnd = findTopWindow(wantedText='网上股票交易系统5.0')
         temp_hwnds = dumpWindows(self.__top_hwnd)[0][0]
         temp_hwnds = dumpWindow(temp_hwnds)[4][0]  # 同花顺通用版
-        # temp_hwnds = dumpWindow(temp_hwnds)[5][0]     # 华泰专用版
-        self.__sell_buy_hwnds = dumpWindow(temp_hwnds)
-        if len(self.__sell_buy_hwnds) not in (70, 73):
+        self.__buy_sell_hwnds = dumpWindow(temp_hwnds)
+        if len(self.__buy_sell_hwnds) != 73:
             tkinter.messagebox.showerror('错误', '无法获得同花顺双向委托界面的窗口句柄')
-        self.__control_hwnds = []
-        for hwnd, text_name, class_name in self.__sell_buy_hwnds:
-            if class_name in ('Button', 'Edit'):
-                self.__control_hwnds.append((hwnd, text_name, class_name))
 
     def __buy(self, code, quantity):
         """下买单
@@ -47,25 +42,27 @@ class OperationThs:
         :param quantity: 数量
         :return:
         """
-        click(self.__control_hwnds[0][0])
+        click(self.__buy_sell_hwnds[2][0])
         time.sleep(0.2)
-        setEditText(self.__control_hwnds[0][0], code)
+        setEditText(self.__buy_sell_hwnds[2][0], code)
         time.sleep(0.2)
-        setEditText(self.__control_hwnds[2][0], quantity)
-        time.sleep(0.2)
-        click(self.__control_hwnds[3][0])
+        if quantity != '0':
+            setEditText(self.__buy_sell_hwnds[7][0], quantity)
+            time.sleep(0.2)
+        click(self.__buy_sell_hwnds[8][0])
         time.sleep(1)
 
     def __sell(self, code, quantity):
         """下卖单
         """
-        click(self.__control_hwnds[4][0])
+        click(self.__buy_sell_hwnds[11][0])
         time.sleep(0.2)
-        setEditText(self.__control_hwnds[4][0], code)
+        setEditText(self.__buy_sell_hwnds[11][0], code)
         time.sleep(0.2)
-        setEditText(self.__control_hwnds[6][0], quantity)
-        time.sleep(0.2)
-        click(self.__control_hwnds[7][0])
+        if quantity != '0':
+            setEditText(self.__buy_sell_hwnds[16][0], quantity)
+            time.sleep(0.2)
+        click(self.__buy_sell_hwnds[17][0])
         time.sleep(1)
 
     def order(self, code, direction, quantity):
@@ -84,26 +81,45 @@ class OperationThs:
         点击刷新按钮
         """
         restoreFocusWindow(self.__top_hwnd)
-        click(self.__control_hwnds[12][0])
+        click(self.__buy_sell_hwnds[46][0])
 
     def getMoney(self):
         """
         获取可用资金
         """
         self.clickRefreshButton()
-        return float(self.__sell_buy_hwnds[51][1])
+        return float(self.__buy_sell_hwnds[51][1])
 
     def getPosition(self):
         """
         获取股票持仓
         """
         self.clickRefreshButton()
-        clickWindow(self.__sell_buy_hwnds[-2][0], 20)
+        clickWindow(self.__buy_sell_hwnds[-2][0], 20)
         sendKeyEvent(win32con.VK_CONTROL, 0)
         sendKeyEvent(ord('C'), 0)
         sendKeyEvent(ord('C'), win32con.KEYEVENTF_KEYUP)
         sendKeyEvent(win32con.VK_CONTROL, win32con.KEYEVENTF_KEYUP)
         return getTableData(11)
+
+    def getDeal(self, code, pre_position, cur_position):
+        """
+        获取成交数量
+        :param code: 需检查的股票代码
+        :param pre_position: 下单前的持仓
+        :param cur_position: 下单后的持仓
+        :return: 0-未成交， 正整数是买入的数量， 负整数是卖出的数量
+        """
+        if pre_position == cur_position:
+            return 0
+        pre_len = len(pre_position)
+        cur_len = len(cur_position)
+        if pre_len == cur_len:
+            for row in range(cur_len):
+                if cur_position[row][0] == code:
+                    return int(cur_position[row][1]) - int(pre_position[row][1])
+        if cur_len > pre_len:
+            return int(cur_position[-1][1])
 
 
 class OperationTdx:
@@ -122,7 +138,7 @@ class OperationTdx:
         temp_hwnds = dumpWindow(temp_hwnds[1][0])
         self.__menu_hwnds = dumpWindow(temp_hwnds[0][0])
         self.__buy_sell_hwnds = dumpWindow(temp_hwnds[4][0])
-        if len(self.__buy_sell_hwnds) not in (68,):
+        if len(self.__buy_sell_hwnds) != 68:
             tkinter.messagebox.showerror('错误', '无法获得通达信对买对卖界面的窗口句柄')
 
     def __buy(self, code, quantity):
@@ -186,7 +202,26 @@ class OperationTdx:
         """获取持仓股票信息
         """
         self.clickRefreshButton()
-        return getListViewInfo(self.__buy_sell_hwnds[64][0], 5)
+        return getListViewInfo(self.__buy_sell_hwnds[-4][0], 3)
+
+    def getDeal(self, code, pre_position, cur_position):
+        """
+        获取成交数量
+        :param code: 股票代码
+        :param pre_position: 下单前的持仓
+        :param cur_position: 下单后的持仓
+        :return: 0-未成交， 正整数是买入的数量， 负整数是卖出的数量
+        """
+        if pre_position == cur_position:
+            return 0
+        pre_len = len(pre_position)
+        cur_len = len(cur_position)
+        if pre_len == cur_len:
+            for row in range(cur_len):
+                if cur_position[row][0] == code:
+                    return int(cur_position[row][1]) - int(pre_position[row][1])
+        if cur_len > pre_len:
+            return int(cur_position[-1][1])
 
 
 def pickCodeFromItems(items_info):
@@ -275,6 +310,7 @@ def monitor():
             operation = OperationThs()
     except:
         tkinter.messagebox.showerror('错误', '无法获得交易软件句柄')
+    print(operation.getMoney())
     while is_monitor:
 
         if is_start:
