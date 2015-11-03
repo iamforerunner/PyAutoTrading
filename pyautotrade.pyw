@@ -23,7 +23,7 @@ set_stocks_info = []
 actual_stocks_info = []
 consignation_info = []
 is_ordered = [1] * NUM_OF_STOCKS  # 1：未下单  0：已下单
-is_dealt = [0] * NUM_OF_STOCKS   # 0: 未成交   负整数：卖出数量， 正整数：买入数量
+is_dealt = [0] * NUM_OF_STOCKS  # 0: 未成交   负整数：卖出数量， 正整数：买入数量
 stock_codes = [''] * NUM_OF_STOCKS
 
 
@@ -422,7 +422,7 @@ class StockGui:
             Entry(frame1, textvariable=self.variable[row][8], state=DISABLED, justify=CENTER,
                   width=6).grid(row=row + 2, column=9, padx=5, pady=5)
             Entry(frame1, textvariable=self.variable[row][9], state=DISABLED,
-                  width=6).grid(row=row+2, column=10, padx=5, pady=5)
+                  width=6).grid(row=row + 2, column=10, padx=5, pady=5)
 
         frame3 = Frame(self.window)
         frame3.pack(padx=10, pady=10)
